@@ -1,9 +1,11 @@
 from engine.vec2 import Vec2
+import os
 import pygame
 
 class Tile:
-    def __init__(self, solid: bool) -> None:
-        self.solid = solid
+    def __init__(self, solid: bool = False, texture: pygame.Surface | None = None) -> None:
+        self.solid: bool = solid
+        self.texture: pygame.Surface | None = texture
 
 
 class TileMap:
@@ -17,40 +19,20 @@ class TileMap:
         self.height: int = len(map)
 
 
-    @staticmethod
-    def load_from_file(filename: str, tile_size: Vec2) -> TileMap | None:
-        try:
-            with open(filename, "r") as file:
-                map: list[list[int]] = []
-                width: int = 0
-                height: int = 0
-
-                for line in file:
-                    map.append([])
-
-                    split = line.split()
-                    for i in range(len(split)):
-                        map[height].append(int(split[i]))
-
-                    if height == 0:
-                        width = len(split)
-                    elif width != len(split):
-                        print("Lines in map file must have equal amount of elements")
-                        return None
-
-                    height += 1
-
-                return TileMap(tile_size, map)
-        except OSError:
-            print("Failed to open map file")
-
-        return None
-
-
-    ## Returns ID of added tile
-    def add_to_tileset(self, tile: Tile) -> int:
+    def add_to_tileset(self, tile: Tile) -> None:
         self.tileset.append(tile)
-        return len(self.tileset) - 1
+
+
+    def tileset_from_dict(self, data: dict, texture_folder: str) -> None:
+        for tile_data in data:
+            txt: pygame.Surface | None = None
+            if tile_data.get("texture") is not None:
+                txt = pygame.image.load(os.path.join(texture_folder, tile_data["texture"]))
+
+            self.add_to_tileset(Tile(
+                solid = tile_data.get("solid", False),
+                texture = txt
+            ))
 
 
     def set_tile(self, x: int, y: int, tile_id: int) -> None:
@@ -76,15 +58,11 @@ class TileMap:
 
         for y in y_range:
             for x in x_range:
-
-                # TODO: Change to drawing textures defined by tilemap.Tile
-                if self.get_tile_at(x, y).solid:
-                    surface.fill(
-                        pygame.Color(0x50, 0x50, 0x50),
+                if self.get_tile_at(x, y).texture is not None:
+                    surface.blit(
+                        self.get_tile_at(x, y).texture,
                         (
                             self.tile_size.x * x - offset.x,
-                            self.tile_size.y * y - offset.y,
-                            self.tile_size.x,
-                            self.tile_size.y
+                            self.tile_size.y * y - offset.y
                         )
                     )

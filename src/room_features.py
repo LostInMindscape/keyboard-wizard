@@ -1,8 +1,9 @@
+from engine.vec2 import Vec2
+import os
 import pygame
 
-from engine.vec2 import Vec2
 
-class RoomContent:
+class RoomFeatures:
     def __init__(
             self,
             spawnpoint: Vec2 | None = None,
@@ -14,13 +15,13 @@ class RoomContent:
         self.background: pygame.Surface | None = background
 
 
-    def try_draw_spawnpoint(self, surface: pygame.Surface) -> None:
+    def try_draw_spawnpoint(self, surface: pygame.Surface, texture: pygame.Surface) -> None:
         if self.spawnpoint is not None:
-            surface.fill(
-                pygame.Color(0x40, 0x40, 0xC0),
+            surface.blit(
+                texture,
                 (
-                    self.spawnpoint.x - 50, self.spawnpoint.y - 80,
-                    100, 80
+                    self.spawnpoint.x - texture.get_width() / 2,
+                    self.spawnpoint.y - texture.get_height()
                 )
             )
 
@@ -44,10 +45,21 @@ class RoomContent:
 
 
     @staticmethod
-    def from_json(json_data: dict) -> RoomContent:
-        spawnpoint_raw: list[int] | None = json_data["spawnpoint"]
-        spawnpoint: Vec2 | None = None      \
-            if spawnpoint_raw is None       \
-            else Vec2(int(spawnpoint_raw[0]), int(spawnpoint_raw[1]))
+    def from_dict(data: dict, textures_folder: str) -> RoomFeatures:
+        sp: Vec2 | None = None
+        if data.get("spawnpoint") is not None:
+            sp = Vec2(data["spawnpoint"][0], data["spawnpoint"][1])
 
-        return RoomContent(spawnpoint)
+        ol: pygame.Surface | None = None
+        if data.get("overlay") is not None:
+            ol = pygame.image.load(os.path.join(textures_folder, data["overlay"]))
+
+        bg: pygame.Surface | None = None
+        if data.get("background") is not None:
+            bg = pygame.image.load(os.path.join(textures_folder, data["background"]))
+
+        return RoomFeatures(
+            spawnpoint=sp,
+            overlay=ol,
+            background=bg
+        )

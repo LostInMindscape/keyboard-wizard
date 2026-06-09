@@ -3,13 +3,25 @@ import pygame
 import tilemap
 
 class Player:
-    def __init__(self, size: float) -> None:
-        self.position: Vec2         = Vec2(0.0, 0.0)
+    def __init__(
+            self,
+            position: Vec2 = Vec2(0, 0),
+            size: Vec2 = Vec2(100, 100),
+    ) -> None:
+        self.position: Vec2         = position
         self.velocity: Vec2         = Vec2(0.0, 0.0)
+        self.size: Vec2             = size
         self.direction: float       = 0.0
-        self.size: Vec2             = Vec2(size, size)
         self.on_ground: bool        = False
         self.can_jump_cancel: bool  = False
+
+
+    def update_from_dict(self, data: dict) -> None:
+        if data.get("position") is not None:
+            self.position = Vec2(data["position"][0], data["position"][1])
+
+        if data.get("size") is not None:
+            self.size = Vec2(data["size"][0], data["size"][1])
 
 
     def handle_event(self, event: pygame.event.Event) -> None:
