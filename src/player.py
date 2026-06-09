@@ -1,4 +1,4 @@
-from engine.vec2 import Vec2
+from src.engine import Vec2
 import pygame
 import tilemap
 

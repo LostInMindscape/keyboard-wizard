@@ -1,4 +1,3 @@
-import engine.vec2 as vec2
 import pygame
 
 class Scene:

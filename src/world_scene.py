@@ -1,16 +1,15 @@
 import os
-from typing import Any
 
-import engine.game
-import engine.scene
-from engine.vec2 import Vec2
+import src.engine.game
+import src.engine.scene
+from src.engine import Vec2
 import math
 import player
 import pygame
 import sys
 import tilemap
 
-class WorldScene(engine.scene.Scene):
+class WorldScene(src.engine.scene.Scene):
     def __init__(self):
         self.player = player.Player(40)
         self.player.position = Vec2(100, 200)
@@ -21,7 +20,7 @@ class WorldScene(engine.scene.Scene):
             Vec2(50,50)
         )
         self.tilemap.load_from_file(
-            os.path.join("assets", "map2.txt")
+            os.path.join("assets", "map.txt")
         )
         self.tilemap.add_to_tileset(tilemap.Tile(False))
         self.tilemap.add_to_tileset(tilemap.Tile(True))
@@ -101,7 +100,7 @@ class WorldScene(engine.scene.Scene):
 
 if __name__ == "__main__":
     scene = WorldScene()
-    g = engine.game.Game(scene, 144)
+    g = src.engine.game.Game(scene, 144)
     g.run((
         int(scene.room_size_tiles.x * scene.tilemap.tile_size.x),
         int(scene.room_size_tiles.y * scene.tilemap.tile_size.y)

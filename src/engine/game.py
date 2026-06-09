@@ -1,4 +1,4 @@
-import engine.scene as scene
+import src.engine.scene as scene
 import time
 import pygame
 
