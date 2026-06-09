@@ -31,8 +31,9 @@
     }
   ],
   "player": {
+    "sprite": "player.png",
     "position": [100, 200],
-    "size": [40, 40]
+    "size": [20, 40]
   },
   "room_size_tiles": [32, 18],
   "tile_size": [50, 50]

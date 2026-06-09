@@ -24,7 +24,7 @@ class WorldScene(engine.scene.Scene):
 
         # loading player
         self.player = player.Player()
-        self.player.update_from_dict(data["player"])
+        self.player.update_from_dict(data["player"], TEXTURES_PATH)
 
         # loading tilemap
         self.tilemap: tilemap.TileMap = tilemap.TileMap(
@@ -65,32 +65,60 @@ class WorldScene(engine.scene.Scene):
         self.player.velocity.y += 2000.0 * delta
         self.player.move(self.tilemap, delta)
 
+        room: tuple[int, int] = self.get_current_room()
+        rf: RoomFeatures = self.get_room_features(room)
+
+        if rf.spawnpoint is not None:
+            sp_rect: pygame.Rect = pygame.Rect(
+                rf.spawnpoint.x, rf.spawnpoint.y,
+                self.spawnpoint_texture.get_width(), self.spawnpoint_texture.get_height()
+            )
+
+            if sp_rect.colliderect(self.player.get_rect()):
+                self.player.touching_spawnpoint = room
+            else:
+                self.player.touching_spawnpoint = None
+
+        else:
+            self.player.touching_spawnpoint = None
+
 
     def draw(self, window: pygame.Surface) -> None:
-        current_room_x: int = int((self.player.position.x + self.player.size.x * 0.5) / window.get_width())
-        current_room_y: int = int((self.player.position.y + self.player.size.y * 0.5) / window.get_height())
+        current_room: tuple[int, int] = self.get_current_room()
 
         offset: Vec2 = Vec2(
-            current_room_x * window.get_width(),
-            current_room_y * window.get_height()
+            current_room[0] * window.get_width(),
+            current_room[1] * window.get_height()
         )
 
         window.fill(pygame.Color(0x20, 0x20, 0x20))
 
-        rc: RoomFeatures = self.room_features.get(
-            (current_room_x, current_room_y),
-            self.empty_room
-        )
+        rf: RoomFeatures = self.get_current_room_features()
 
-        rc.try_draw_background(window)
+        rf.try_draw_background(window)
 
         self.tilemap.draw(window, offset)
 
-        rc.try_draw_spawnpoint(window, self.spawnpoint_texture)
+        rf.try_draw_spawnpoint(window, self.spawnpoint_texture)
 
         self.player.draw(window, offset)
 
-        rc.try_draw_overlay(window)
+        rf.try_draw_overlay(window)
+
+
+    def get_current_room(self) -> tuple[int, int]:
+        return (
+            int((self.player.position.x + self.player.size.x * 0.5) / self.room_size_pixels.x),
+            int((self.player.position.y + self.player.size.y * 0.5) / self.room_size_pixels.y)
+        )
+
+
+    def get_room_features(self, room: tuple[int, int]) -> RoomFeatures:
+        return self.room_features.get(room, self.empty_room)
+
+
+    def get_current_room_features(self) -> RoomFeatures:
+        return self.get_room_features(self.get_current_room())
 
 
     def _load_room_features(self, features_list: list) -> None:

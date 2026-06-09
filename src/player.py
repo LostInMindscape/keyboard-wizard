@@ -1,4 +1,5 @@
 from engine.vec2 import Vec2
+import os
 import pygame
 import tilemap
 
@@ -8,20 +9,32 @@ class Player:
             position: Vec2 = Vec2(0, 0),
             size: Vec2 = Vec2(100, 100),
     ) -> None:
-        self.position: Vec2         = position
-        self.velocity: Vec2         = Vec2(0.0, 0.0)
-        self.size: Vec2             = size
-        self.direction: float       = 0.0
-        self.on_ground: bool        = False
-        self.can_jump_cancel: bool  = False
+        self.sprite: pygame.Surface | None  = None
+        self.position: Vec2                 = position
+        self.velocity: Vec2                 = Vec2(0.0, 0.0)
+        self.size: Vec2                     = size
+
+        self.direction: float               = 0.0
+        self.on_ground: bool                = False
+        self.can_jump_cancel: bool          = False
+
+        self.touched_spawnpoint: tuple[int, int] | None  = None
+        self.saved_spawnpoint: tuple[int, int]           = (0, 0)
 
 
-    def update_from_dict(self, data: dict) -> None:
+    def update_from_dict(self, data: dict, textures_folder: str) -> None:
+        if data.get("sprite") is not None:
+            self.sprite = pygame.image.load(os.path.join(textures_folder, data["sprite"]))
+
         if data.get("position") is not None:
             self.position = Vec2(data["position"][0], data["position"][1])
 
         if data.get("size") is not None:
             self.size = Vec2(data["size"][0], data["size"][1])
+
+
+    def get_rect(self) -> pygame.Rect:
+        return pygame.Rect(self.position.x, self.position.y, self.size.x, self.size.y)
 
 
     def handle_event(self, event: pygame.event.Event) -> None:
@@ -34,6 +47,9 @@ class Player:
                 if self.on_ground:
                     self.can_jump_cancel = True
                     self.velocity.y -= 800.0
+            elif event.key == pygame.K_e:
+                if self.touched_spawnpoint is not None:
+                    self.saved_spawnpoint = self.touched_spawnpoint
 
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_a:
@@ -50,15 +66,7 @@ class Player:
         px: float = self.position.x - negative_offset.x
         py: float = self.position.y - negative_offset.y
 
-        surface.fill(
-            pygame.Color(0x80, 0x80, 0xB0),
-            (
-                px if px > 0 else 0,
-                py if py > 0 else 0,
-                self.size.x + (px if px < 0 else 0),
-                self.size.y + (py if py < 0 else 0)
-            )
-        )
+        surface.blit(self.sprite, (px, py))
 
 
     def move(self, tile_map: tilemap.TileMap, delta: float) -> None:
