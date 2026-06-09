@@ -1,4 +1,4 @@
-from src.engine import Vec2
+from engine.vec2 import Vec2
 import pygame
 import tilemap
 
@@ -35,18 +35,6 @@ class Player:
 
 
     def move(self, tile_map: tilemap.TileMap, delta: float) -> None:
-        ## Removed for the sake of optimization - dont let the player out!
-        #
-        # if (
-        #     self.position.x + self.size.x < 0 or
-        #     self.position.y + self.size.y < 0 or
-        #     self.position.x > tile_map.tile_size.x * tile_map.width or
-        #     self.position.y > tile_map.tile_size.y * tile_map.height
-        # ):
-        #     self.position.x += self.velocity.x * delta
-        #     self.position.y += self.velocity.y * delta
-        #     return
-
         if self.velocity.x != 0:
             step: float = self.velocity.x * delta
             step_dir: int = (1 if step > 0 else -1)

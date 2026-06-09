@@ -1,26 +1,23 @@
 import os
 
-import src.engine.game
-import src.engine.scene
-from src.engine import Vec2
+import engine.game
+import engine.scene
+from engine.vec2 import Vec2
 import math
 import player
 import pygame
 import sys
 import tilemap
 
-class WorldScene(src.engine.scene.Scene):
+class WorldScene(engine.scene.Scene):
     def __init__(self):
         self.player = player.Player(40)
         self.player.position = Vec2(100, 200)
 
         self.room_size_tiles: Vec2 = Vec2(32, 18)
 
-        self.tilemap: tilemap.TileMap = tilemap.TileMap(
-            Vec2(50,50)
-        )
-        self.tilemap.load_from_file(
-            os.path.join("assets", "map.txt")
+        self.tilemap: tilemap.TileMap = tilemap.TileMap.load_from_file(
+            os.path.join("assets", "map.txt"), Vec2(50,50)
         )
         self.tilemap.add_to_tileset(tilemap.Tile(False))
         self.tilemap.add_to_tileset(tilemap.Tile(True))
@@ -47,45 +44,17 @@ class WorldScene(src.engine.scene.Scene):
     def draw(self, window: pygame.Surface) -> None:
         window.fill(pygame.Color(0x20, 0x20, 0x20))
 
-        # Drawing current room
-        current_room: Vec2 = Vec2(
-            math.floor((self.player.position.x + self.player.size.x * 0.5) / self.room_size_pixels.x),
-            math.floor((self.player.position.y + self.player.size.y * 0.5) / self.room_size_pixels.y)
+        offset: Vec2 = Vec2(
+            math.floor((self.player.position.x + self.player.size.x * 0.5) / window.get_width()) * window.get_width(),
+            math.floor((self.player.position.y + self.player.size.y * 0.5) / window.get_height()) * window.get_height()
         )
 
-        if current_room.x >= 0 and current_room.y >= 0:
-            y_range: range = range(
-                int(self.room_size_tiles.y * current_room.y),
-                int(self.room_size_tiles.y * current_room.y + self.room_size_tiles.y)
-            )
-            x_range: range = range(
-                int(self.room_size_tiles.x * current_room.x),
-                int(self.room_size_tiles.x * current_room.x + self.room_size_tiles.x)
-            )
-
-            offset: Vec2 = Vec2(
-                current_room.x * self.room_size_pixels.x,
-                current_room.y * self.room_size_pixels.y
-            )
-
-            for y in y_range:
-                for x in x_range:
-
-                    # TODO: Change to drawing textures defined by tilemap.Tile
-                    if self.tilemap.get_tile_at(x, y).solid:
-                        window.fill(
-                            pygame.Color(0x50, 0x50, 0x50),
-                            (
-                                self.tilemap.tile_size.x * x - offset.x,
-                                self.tilemap.tile_size.y * y - offset.y,
-                                self.tilemap.tile_size.x,
-                                self.tilemap.tile_size.y
-                            )
-                        )
+        # Drawing current room
+        self.tilemap.draw(window, offset)
 
         # Drawing player
-        px: float = self.player.position.x - current_room.x * self.room_size_pixels.x
-        py: float = self.player.position.y - current_room.y * self.room_size_pixels.y
+        px: float = self.player.position.x - offset.x
+        py: float = self.player.position.y - offset.y
 
         window.fill(
             pygame.Color(0x80, 0x80, 0xB0),
@@ -100,7 +69,7 @@ class WorldScene(src.engine.scene.Scene):
 
 if __name__ == "__main__":
     scene = WorldScene()
-    g = src.engine.game.Game(scene, 144)
+    g = engine.game.Game(scene, 144)
     g.run((
         int(scene.room_size_tiles.x * scene.tilemap.tile_size.x),
         int(scene.room_size_tiles.y * scene.tilemap.tile_size.y)

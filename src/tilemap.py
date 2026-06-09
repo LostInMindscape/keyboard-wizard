@@ -1,4 +1,5 @@
-from src.engine import Vec2
+from engine.vec2 import Vec2
+import pygame
 
 class Tile:
     def __init__(self, solid: bool) -> None:
@@ -6,37 +7,44 @@ class Tile:
 
 
 class TileMap:
-    def __init__(self, tile_size: Vec2, width: int = 0, height: int = 0, map: list[list[int]] | None = None) -> None:
+    def __init__(self, tile_size: Vec2, map: list[list[int]] | None = None) -> None:
         self.tile_size: Vec2 = tile_size
-
-        self.width: int = width
-        self.height: int = height
 
         self.tileset: list[Tile] = []
         self.map: list[list[int]] = [] if map is None else map
 
+        self.width: int = len(map[0]) if len(map) > 0 else 0
+        self.height: int = len(map)
 
-    def load_from_file(self, filename: str) -> None:
+
+    @staticmethod
+    def load_from_file(filename: str, tile_size: Vec2) -> TileMap | None:
         try:
             with open(filename, "r") as file:
-                del self.map
-                self.map = []
+                map: list[list[int]] = []
+                width: int = 0
+                height: int = 0
 
                 for line in file:
-                    self.map.append([])
+                    map.append([])
 
                     split = line.split()
                     for i in range(len(split)):
-                        self.map[self.height].append(int(split[i]))
+                        map[height].append(int(split[i]))
 
-                    if self.height == 0:
-                        self.width = len(split)
-                    elif self.width != len(split):
-                        raise ValueError("Lines in map file must have equal amount of elements")
+                    if height == 0:
+                        width = len(split)
+                    elif width != len(split):
+                        print("Lines in map file must have equal amount of elements")
+                        return None
 
-                    self.height += 1
-        except:
-            print("Failed to load map file")
+                    height += 1
+
+                return TileMap(tile_size, map)
+        except OSError:
+            print("Failed to open map file")
+
+        return None
 
 
     ## Returns ID of added tile
@@ -51,3 +59,32 @@ class TileMap:
 
     def get_tile_at(self, x: int, y: int) -> Tile:
         return self.tileset[self.map[y][x]]
+
+
+    def draw(self, window: pygame.Surface, offset: Vec2) -> None:
+        if -window.get_width() > offset.x or -window.get_height() > offset.y:
+            return
+
+        y_range: range = range(
+            int(offset.y / self.tile_size.y),
+            int((offset.y + window.get_height()) / self.tile_size.y)
+        )
+        x_range: range = range(
+            int(offset.x / self.tile_size.x),
+            int((offset.x + window.get_width()) / self.tile_size.x)
+        )
+
+        for y in y_range:
+            for x in x_range:
+
+                # TODO: Change to drawing textures defined by tilemap.Tile
+                if self.get_tile_at(x, y).solid:
+                    window.fill(
+                        pygame.Color(0x50, 0x50, 0x50),
+                        (
+                            self.tile_size.x * x - offset.x,
+                            self.tile_size.y * y - offset.y,
+                            self.tile_size.x,
+                            self.tile_size.y
+                        )
+                    )
