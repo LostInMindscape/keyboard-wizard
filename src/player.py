@@ -34,6 +34,21 @@ class Player:
                     self.velocity.y += 300.0
 
 
+    def draw(self, window: pygame.Surface, negative_offset: Vec2) -> None:
+        px: float = self.position.x - negative_offset.x
+        py: float = self.position.y - negative_offset.y
+
+        window.fill(
+            pygame.Color(0x80, 0x80, 0xB0),
+            (
+                px if px > 0 else 0,
+                py if py > 0 else 0,
+                self.size.x + (px if px < 0 else 0),
+                self.size.y + (py if py < 0 else 0)
+            )
+        )
+
+
     def move(self, tile_map: tilemap.TileMap, delta: float) -> None:
         if self.velocity.x != 0:
             step: float = self.velocity.x * delta

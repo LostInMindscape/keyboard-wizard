@@ -1,3 +1,5 @@
+import pygame
+
 from engine.vec2 import Vec2
 
 class RoomContent:
@@ -5,6 +7,17 @@ class RoomContent:
         self.spawnpoint: Vec2 | None = spawnpoint
         # self.overlay - image or none
         # self.background - image or none
+
+
+    def draw(self, surface: pygame.Surface) -> None:
+        if self.spawnpoint is not None:
+            surface.fill(
+                pygame.Color(0x40, 0x40, 0xFF),
+                (
+                    self.spawnpoint.x - 20, self.spawnpoint.y - 60,
+                    40, 60
+                )
+            )
 
 
     @staticmethod

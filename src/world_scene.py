@@ -1,9 +1,8 @@
-import os
-
 import engine.game
 import engine.scene
 from engine.vec2 import Vec2
 import math
+import os
 import player
 import pygame
 import sys
@@ -44,27 +43,18 @@ class WorldScene(engine.scene.Scene):
     def draw(self, window: pygame.Surface) -> None:
         window.fill(pygame.Color(0x20, 0x20, 0x20))
 
+        current_room: Vec2 = Vec2(
+            math.floor((self.player.position.x + self.player.size.x * 0.5) / window.get_width()),
+            math.floor((self.player.position.y + self.player.size.y * 0.5) / window.get_height())
+        )
+
         offset: Vec2 = Vec2(
-            math.floor((self.player.position.x + self.player.size.x * 0.5) / window.get_width()) * window.get_width(),
-            math.floor((self.player.position.y + self.player.size.y * 0.5) / window.get_height()) * window.get_height()
+            current_room.x * window.get_width(),
+            current_room.y * window.get_height()
         )
 
-        # Drawing current room
         self.tilemap.draw(window, offset)
-
-        # Drawing player
-        px: float = self.player.position.x - offset.x
-        py: float = self.player.position.y - offset.y
-
-        window.fill(
-            pygame.Color(0x80, 0x80, 0xB0),
-            (
-                px if px > 0 else 0,
-                py if py > 0 else 0,
-                self.player.size.x + (px if px < 0 else 0),
-                self.player.size.y + (py if py < 0 else 0)
-            )
-        )
+        self.player.draw(window, offset)
 
 
 if __name__ == "__main__":
