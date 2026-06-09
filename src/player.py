@@ -46,7 +46,7 @@ class Player:
             elif event.key == pygame.K_SPACE or event.key == pygame.K_w:
                 if self.on_ground:
                     self.can_jump_cancel = True
-                    self.velocity.y -= 800.0
+                    self.velocity.y -= 1000.0
             elif event.key == pygame.K_e:
                 if self.touched_spawnpoint is not None:
                     self.saved_spawnpoint = self.touched_spawnpoint
@@ -59,7 +59,7 @@ class Player:
             elif event.key == pygame.K_SPACE or event.key == pygame.K_w:
                 if self.can_jump_cancel and self.velocity.y < 0:
                     self.can_jump_cancel = False
-                    self.velocity.y += 300.0
+                    self.velocity.y += 400.0
 
 
     def draw(self, surface: pygame.Surface, negative_offset: Vec2) -> None:

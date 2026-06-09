@@ -6,6 +6,7 @@ from engine.vec2 import Vec2
 import os
 import player
 import pygame
+from pygame import freetype
 from room_features import RoomFeatures
 import sys
 import tilemap
@@ -14,13 +15,26 @@ TEXTURES_PATH: str               = os.path.join("assets", "textures")
 TILESET_TEXTURES_PATH: str       = os.path.join(TEXTURES_PATH, "tileset")
 ROOM_FEATURE_TEXTURES_PATH: str  = os.path.join(TEXTURES_PATH, "room_features")
 
+
 class WorldScene(engine.scene.Scene):
     def __init__(self):
+        self.command_input_state: bool = False
+        self.command: str = ""
+
         json_text: str
         with open(os.path.join("assets", "map.json"), "r") as f:
             json_text = f.read()
-
         data: dict = json.loads(json_text)
+
+        # loading font
+        self.font: freetype.Font = \
+            freetype.Font(
+                data["font"]["name"],
+                data["font"].get("size", 30)
+            ) if "font" in data and "name" in data["font"] else \
+            freetype.SysFont(
+                freetype.get_default_font().removesuffix(".ttf"), 30
+            )
 
         # loading player
         self.player = player.Player()
@@ -55,32 +69,9 @@ class WorldScene(engine.scene.Scene):
 
     def update(self, delta: float) -> None:
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            else:
-                self.player.handle_event(event)
+            self._process_event(event)
 
-        self.player.velocity.x = self.player.direction * 600.0
-        self.player.velocity.y += 2000.0 * delta
-        self.player.move(self.tilemap, delta)
-
-        room: tuple[int, int] = self.get_current_room()
-        rf: RoomFeatures = self.get_room_features(room)
-
-        if rf.spawnpoint is not None:
-            sp_rect: pygame.Rect = pygame.Rect(
-                rf.spawnpoint.x, rf.spawnpoint.y,
-                self.spawnpoint_texture.get_width(), self.spawnpoint_texture.get_height()
-            )
-
-            if sp_rect.colliderect(self.player.get_rect()):
-                self.player.touching_spawnpoint = room
-            else:
-                self.player.touching_spawnpoint = None
-
-        else:
-            self.player.touching_spawnpoint = None
+        self._update_player(delta)
 
 
     def draw(self, window: pygame.Surface) -> None:
@@ -105,6 +96,9 @@ class WorldScene(engine.scene.Scene):
 
         rf.try_draw_overlay(window)
 
+        if self.command_input_state:
+            self._draw_command_input(window)
+
 
     def get_current_room(self) -> tuple[int, int]:
         return (
@@ -119,6 +113,65 @@ class WorldScene(engine.scene.Scene):
 
     def get_current_room_features(self) -> RoomFeatures:
         return self.get_room_features(self.get_current_room())
+
+
+    def _draw_command_input(self, window: pygame.Surface) -> None:
+        background: pygame.Surface = pygame.Surface((window.get_width() - 20, self.font.size + 10))
+        background.fill(pygame.Color(0x40, 0x40, 0x40))
+        background.set_alpha(191)
+
+        text_surface: pygame.Surface = self.font.render(">" + self.command + "_", (0x80, 0x80, 0xB0))[0]
+        background.blit(text_surface, (5, background.get_height() - 5 - text_surface.get_height()))
+
+        window.blit(background, (10, window.get_height() - self.font.size - 20))
+
+
+    def _process_event(self, event: pygame.Event) -> None:
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+        elif self.command_input_state:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    # TODO: submit and process command
+                    self.command_input_state = False
+                    self.command = ""
+                elif pygame.K_a <= event.key <= pygame.K_z or event.key == pygame.K_SPACE:
+                    self.command += event.unicode
+                elif event.key == pygame.K_BACKSPACE and len(self.command) > 0:
+                    self.command = self.command[:-1]
+
+        else:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+                self.command_input_state = True
+            else:
+                self.player.handle_event(event)
+
+
+    def _update_player(self, delta: float) -> None:
+        # move
+        self.player.velocity.x = self.player.direction * 600.0
+        self.player.velocity.y += 2000.0 * delta
+        self.player.move(self.tilemap, delta)
+
+        # check collision with spawnpoint
+        room: tuple[int, int] = self.get_current_room()
+        rf: RoomFeatures = self.get_room_features(room)
+
+        if rf.spawnpoint is not None:
+            sp_rect: pygame.Rect = pygame.Rect(
+                rf.spawnpoint.x, rf.spawnpoint.y,
+                self.spawnpoint_texture.get_width(), self.spawnpoint_texture.get_height()
+            )
+
+            if sp_rect.colliderect(self.player.get_rect()):
+                self.player.touching_spawnpoint = room
+            else:
+                self.player.touching_spawnpoint = None
+
+        else:
+            self.player.touching_spawnpoint = None
 
 
     def _load_room_features(self, features_list: list) -> None:
