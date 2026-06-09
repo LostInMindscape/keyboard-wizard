@@ -14,6 +14,8 @@ class RoomFeatures:
         self.overlay: pygame.Surface | None = overlay
         self.background: pygame.Surface | None = background
 
+        self.draw_overlay: bool = self.overlay is not None
+
 
     def try_draw_spawnpoint(self, surface: pygame.Surface, texture: pygame.Surface) -> None:
         if self.spawnpoint is not None:
@@ -36,7 +38,7 @@ class RoomFeatures:
 
 
     def try_draw_overlay(self, surface: pygame.Surface) -> None:
-        if self.overlay is not None:
+        if self.draw_overlay and self.overlay is not None:
             dest: tuple[float, float] = (
                 (surface.get_width() - self.overlay.get_width()) / 2,
                 (surface.get_height() - self.overlay.get_height()) / 2

@@ -3,9 +3,15 @@ import os
 import pygame
 
 class Tile:
-    def __init__(self, solid: bool = False, texture: pygame.Surface | None = None) -> None:
+    def __init__(
+            self,
+            solid: bool = False,
+            texture: pygame.Surface | None = None,
+            toggle: int | None = None,
+    ) -> None:
         self.solid: bool = solid
         self.texture: pygame.Surface | None = texture
+        self.toggle: int | None = toggle
 
 
 class TileMap:
@@ -31,7 +37,8 @@ class TileMap:
 
             self.add_to_tileset(Tile(
                 solid = tile_data.get("solid", False),
-                texture = txt
+                texture = txt,
+                toggle = tile_data.get("toggle", None)
             ))
 
 

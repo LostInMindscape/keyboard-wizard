@@ -134,9 +134,8 @@ class WorldScene(engine.scene.Scene):
         elif self.command_input_state:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                    # TODO: submit and process command
+                    self._process_command()
                     self.command_input_state = False
-                    self.command = ""
                 elif pygame.K_a <= event.key <= pygame.K_z or event.key == pygame.K_SPACE:
                     self.command += event.unicode
                 elif event.key == pygame.K_BACKSPACE and len(self.command) > 0:
@@ -151,8 +150,6 @@ class WorldScene(engine.scene.Scene):
 
     def _update_player(self, delta: float) -> None:
         # move
-        self.player.velocity.x = self.player.direction * 600.0
-        self.player.velocity.y += 2000.0 * delta
         self.player.move(self.tilemap, delta)
 
         # check collision with spawnpoint
@@ -172,6 +169,28 @@ class WorldScene(engine.scene.Scene):
 
         else:
             self.player.touching_spawnpoint = None
+
+
+    def _process_command(self):
+        if self.command == "":
+            pass
+
+        elif self.command == "recall":
+            sp: Vec2 = self.get_room_features(self.player.saved_spawnpoint).spawnpoint
+            self.player.position.x = self.player.saved_spawnpoint[0] * self.room_size_pixels.x + sp.x
+            self.player.position.y = self.player.saved_spawnpoint[1] * self.room_size_pixels.y + sp.y
+
+        elif self.command == "toggle":
+            room: tuple[int, int] = self.get_current_room()
+            y_range: range = range(int(self.room_size_tiles.y) * room[1], int(self.room_size_tiles.y) * (room[1] + 1))
+            x_range: range = range(int(self.room_size_tiles.x) * room[0], int(self.room_size_tiles.x) * (room[0] + 1))
+
+            for y in y_range:
+                for x in x_range:
+                    if self.tilemap.get_tile_at(x, y).toggle is not None:
+                        self.tilemap.map[y][x] = self.tilemap.get_tile_at(x, y).toggle
+
+        self.command = ""
 
 
     def _load_room_features(self, features_list: list) -> None:

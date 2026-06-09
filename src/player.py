@@ -19,7 +19,7 @@ class Player:
         self.can_jump_cancel: bool          = False
 
         self.touched_spawnpoint: tuple[int, int] | None  = None
-        self.saved_spawnpoint: tuple[int, int]           = (0, 0)
+        self.saved_spawnpoint: tuple[int, int]           = (1, 0)
 
 
     def update_from_dict(self, data: dict, textures_folder: str) -> None:
@@ -70,6 +70,9 @@ class Player:
 
 
     def move(self, tile_map: tilemap.TileMap, delta: float) -> None:
+        self.velocity.x = self.direction * 600.0
+        self.velocity.y += 2000.0 * delta
+
         if self.velocity.x != 0:
             step: float = self.velocity.x * delta
             step_dir: int = (1 if step > 0 else -1)
