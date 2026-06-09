@@ -61,17 +61,17 @@ class TileMap:
         return self.tileset[self.map[y][x]]
 
 
-    def draw(self, window: pygame.Surface, offset: Vec2) -> None:
-        if -window.get_width() > offset.x or -window.get_height() > offset.y:
+    def draw(self, surface: pygame.Surface, offset: Vec2) -> None:
+        if -surface.get_width() > offset.x or -surface.get_height() > offset.y:
             return
 
         y_range: range = range(
             int(offset.y / self.tile_size.y),
-            int((offset.y + window.get_height()) / self.tile_size.y)
+            int((offset.y + surface.get_height()) / self.tile_size.y)
         )
         x_range: range = range(
             int(offset.x / self.tile_size.x),
-            int((offset.x + window.get_width()) / self.tile_size.x)
+            int((offset.x + surface.get_width()) / self.tile_size.x)
         )
 
         for y in y_range:
@@ -79,7 +79,7 @@ class TileMap:
 
                 # TODO: Change to drawing textures defined by tilemap.Tile
                 if self.get_tile_at(x, y).solid:
-                    window.fill(
+                    surface.fill(
                         pygame.Color(0x50, 0x50, 0x50),
                         (
                             self.tile_size.x * x - offset.x,
