@@ -1,0 +1,23 @@
+[gd_scene format=4 uid="uid://cl22jnoi73m2i"]
+
+[ext_resource type="Script" uid="uid://b30c0tjm7mkl0" path="res://editor_main.gd" id="1_wtcfe"]
+[ext_resource type="Texture2D" uid="uid://cg2nw2xe6ug5x" path="res://icon.svg" id="2_0e48y"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_epypp"]
+texture = ExtResource("2_0e48y")
+texture_region_size = Vector2i(50, 50)
+0:0/0 = 0
+1:0/0 = 0
+0:1/0 = 0
+1:1/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_0e48y"]
+tile_size = Vector2i(50, 50)
+sources/0 = SubResource("TileSetAtlasSource_epypp")
+
+[node name="Node2D" type="Node2D" unique_id=2093104417]
+script = ExtResource("1_wtcfe")
+
+[node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=1580171433]
+tile_map_data = PackedByteArray("AAABAAEAAAABAAAAAAAIAAUAAAAAAAEAAAAHAAUAAAABAAEAAAAGAAUAAAABAAEAAAAFAAUAAAABAAEAAAAEAAUAAAABAAEAAAADAAUAAAABAAEAAAADAAQAAAABAAEAAAACAAQAAAABAAEAAAABAAQAAAABAAEAAAABAAMAAAABAAEAAAACAAMAAAABAAEAAAABAAUAAAABAAEAAAACAAUAAAABAAEAAAABAAIAAAABAAEAAAACAAIAAAABAAEAAAADAAIAAAABAAEAAAADAAMAAAABAAEAAAAEAAMAAAABAAEAAAAEAAQAAAABAAEAAAAFAAQAAAABAAEAAAAFAAMAAAABAAEAAAAGAAQAAAABAAEAAAAHAAQAAAABAAEAAAA=")
+tile_set = SubResource("TileSet_0e48y")
