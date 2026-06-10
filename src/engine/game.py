@@ -15,7 +15,6 @@ class Game:
 
 
     def run(self) -> None:
-
         last_frame_time: float = time.time()
         current_scene: scene.Scene = self.next_scene
         self.next_scene = None

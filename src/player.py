@@ -1,7 +1,23 @@
 from engine.vec2 import Vec2
+import math
 import os
 import pygame
 import tilemap
+
+
+def sign(x: float) -> float:
+    if x == 0.0:
+        return 0.0
+
+    if x >= 0:
+        return 1.0
+
+    return -1.0
+
+
+def move_towards(current: float, target: float, step: float) -> float:
+    return current + sign(target - current) * min(abs(target - current), abs(step))
+
 
 class Player:
     def __init__(
@@ -9,28 +25,55 @@ class Player:
             position: Vec2 = Vec2(0, 0),
             size: Vec2 = Vec2(100, 100),
     ) -> None:
-        self.sprite: pygame.Surface | None  = None
+        self.sprites: list[pygame.Surface] | None  = None
         self.position: Vec2                 = position
         self.velocity: Vec2                 = Vec2(0.0, 0.0)
         self.size: Vec2                     = size
+
+        self.acceleration: float            = 2400.0
+        self.max_speed: float               = 600.0
+        self.gravity: float                 = 2000.0
+        self.jump_acceleration: float       = 1000.0
+        self.jump_cancel: float             = 500.0
 
         self.direction: float               = 0.0
         self.on_ground: bool                = False
         self.can_jump_cancel: bool          = False
 
         self.touched_spawnpoint: tuple[int, int] | None  = None
-        self.saved_spawnpoint: tuple[int, int]           = (1, 0)
+        self.saved_spawnpoint: tuple[int, int]           = (1, 1)
+
+        self.sprite_timer: float = 0.0
+        self.sprite_dir: float = 1.0
 
 
     def update_from_dict(self, data: dict, textures_folder: str) -> None:
-        if data.get("sprite") is not None:
-            self.sprite = pygame.image.load(os.path.join(textures_folder, data["sprite"])).convert_alpha()
+        if data.get("sprites") is not None:
+            self.sprites = []
+            for name in data["sprites"]:
+                self.sprites.append(pygame.image.load(os.path.join(textures_folder, name)).convert_alpha())
 
         if data.get("position") is not None:
             self.position = Vec2(data["position"][0], data["position"][1])
 
         if data.get("size") is not None:
             self.size = Vec2(data["size"][0], data["size"][1])
+
+        if data.get("acceleration") is not None:
+            self.acceleration = data["acceleration"]
+
+        if data.get("max_speed") is not None:
+            self.max_speed = data["max_speed"]
+
+        if data.get("gravity") is not None:
+            self.gravity = data["gravity"]
+
+        if data.get("jump_acceleration") is not None:
+            self.jump_acceleration = data["jump_acceleration"]
+
+        if data.get("jump_cancel") is not None:
+            self.jump_cancel = data["jump_cancel"]
+
 
 
     def get_rect(self) -> pygame.Rect:
@@ -46,7 +89,7 @@ class Player:
             elif event.key == pygame.K_SPACE or event.key == pygame.K_w:
                 if self.on_ground:
                     self.can_jump_cancel = True
-                    self.velocity.y -= 1000.0
+                    self.velocity.y -= self.jump_acceleration
             elif event.key == pygame.K_e:
                 if self.touched_spawnpoint is not None:
                     self.saved_spawnpoint = self.touched_spawnpoint
@@ -59,19 +102,35 @@ class Player:
             elif event.key == pygame.K_SPACE or event.key == pygame.K_w:
                 if self.can_jump_cancel and self.velocity.y < 0:
                     self.can_jump_cancel = False
-                    self.velocity.y += 400.0
+                    self.velocity.y += self.jump_cancel
 
 
     def draw(self, surface: pygame.Surface, negative_offset: Vec2) -> None:
-        px: float = self.position.x - negative_offset.x + (self.size.x - self.sprite.get_width()) / 2
-        py: float = self.position.y - negative_offset.y + (self.size.y - self.sprite.get_height()) / 2
+        px: float = self.position.x - negative_offset.x + (self.size.x - self.sprites[0].get_width()) / 2
+        py: float = self.position.y - negative_offset.y + (self.size.y - self.sprites[0].get_height()) / 2
 
-        surface.blit(self.sprite, (px, py))
+        py += math.sin(self.sprite_timer) * 10
+
+        if self.direction > 0:
+            self.sprite_dir = 1.0
+        elif self.direction < 0:
+            self.sprite_dir = -1.0
+
+        if self.sprite_dir > 0:
+            surface.blit(self.sprites[int(self.sprite_timer) % len(self.sprites)], (px, py))
+        else:
+            surface.blit(
+                pygame.transform.flip(self.sprites[int(self.sprite_timer) % len(self.sprites)], True, False),
+                (px, py)
+            )
 
 
-    def move(self, tile_map: tilemap.TileMap, delta: float) -> None:
-        self.velocity.x = self.direction * 600.0
-        self.velocity.y += 2000.0 * delta
+    def update(self, tile_map: tilemap.TileMap, delta: float) -> None:
+        self.sprite_timer += delta
+
+        # self.velocity.x = self.direction * self.max_speed
+        self.velocity.x = move_towards(self.velocity.x, self.direction * self.max_speed, self.acceleration * delta)
+        self.velocity.y += self.gravity * delta
 
         if self.velocity.x != 0:
             step: float = self.velocity.x * delta
@@ -115,7 +174,9 @@ class Player:
                     if collided:
                         break
 
-                if not collided:
+                if collided:
+                    self.velocity.x = 0.0
+                else:
                     self.position.x += step
 
         if self.velocity.y != 0:

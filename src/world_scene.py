@@ -12,6 +12,7 @@ import sys
 import tilemap
 
 TEXTURES_PATH: str               = os.path.join("assets", "textures")
+PROCESSORS_TEXTURES_PATH: str       = os.path.join(TEXTURES_PATH, "processors")
 TILESET_TEXTURES_PATH: str       = os.path.join(TEXTURES_PATH, "tileset")
 ROOM_FEATURE_TEXTURES_PATH: str  = os.path.join(TEXTURES_PATH, "room_features")
 
@@ -64,8 +65,17 @@ class WorldScene(engine.scene.Scene):
         self.empty_room: RoomFeatures = RoomFeatures()
         self.room_features: dict[tuple[int, int], RoomFeatures] = {}
         self._load_room_features(data["room_features"])
+
+        self.key_texture: pygame.Surface = \
+            pygame.image.load(os.path.join(ROOM_FEATURE_TEXTURES_PATH, "key_e.png")).convert_alpha()
         self.spawnpoint_texture: pygame.Surface = \
             pygame.image.load(os.path.join(ROOM_FEATURE_TEXTURES_PATH, "spawnpoint.png")).convert_alpha()
+
+        # loading processors
+        self.processors: dict[str, pygame.Surface] = {}
+        for key in data["processors"]:
+            self.processors[key] = \
+                pygame.image.load(os.path.join(PROCESSORS_TEXTURES_PATH, data["processors"][key])).convert_alpha()
 
 
     def update(self, delta: float) -> None:
@@ -94,11 +104,15 @@ class WorldScene(engine.scene.Scene):
 
         self.tilemap.draw(window, offset)
 
-        rf.try_draw_spawnpoint(window, self.spawnpoint_texture)
+        rf.try_draw_spawnpoint(
+            window, self.spawnpoint_texture,
+            self.player.touched_spawnpoint is not None, self.key_texture
+        )
 
         self.player.draw(window, offset)
 
         rf.try_draw_overlay(window)
+        rf.try_draw_processor(window, self.processors)
 
         if self.command_input_state:
             self._draw_command_input(window)
@@ -160,7 +174,7 @@ class WorldScene(engine.scene.Scene):
 
     def _update_player(self, delta: float) -> None:
         # move
-        self.player.move(self.tilemap, delta)
+        self.player.update(self.tilemap, delta)
 
         # check collision with spawnpoint
         room: tuple[int, int] = self.get_current_room()
@@ -168,17 +182,24 @@ class WorldScene(engine.scene.Scene):
 
         if rf.spawnpoint is not None:
             sp_rect: pygame.Rect = pygame.Rect(
-                rf.spawnpoint.x, rf.spawnpoint.y,
+                rf.spawnpoint.x - self.spawnpoint_texture.get_width() * 0.5,
+                rf.spawnpoint.y - self.spawnpoint_texture.get_height(),
                 self.spawnpoint_texture.get_width(), self.spawnpoint_texture.get_height()
             )
 
-            if sp_rect.colliderect(self.player.get_rect()):
-                self.player.touching_spawnpoint = room
+            player_rect: pygame.Rect = pygame.Rect(
+                self.player.position.x - room[0] * self.room_size_pixels.x,
+                self.player.position.y - room[1] * self.room_size_pixels.y,
+                self.player.size.x, self.player.size.y
+            )
+
+            if sp_rect.colliderect(player_rect):
+                self.player.touched_spawnpoint = room
             else:
-                self.player.touching_spawnpoint = None
+                self.player.touched_spawnpoint = None
 
         else:
-            self.player.touching_spawnpoint = None
+            self.player.touched_spawnpoint = None
 
 
     def _process_command(self):
