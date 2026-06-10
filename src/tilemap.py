@@ -20,9 +20,20 @@ class TileMap:
 
         self.tileset: list[Tile] = []
         self.map: list[list[int]] = [] if map is None else map
+        self.base_map: list[list[int]] = []
+        if map is not None:
+            for row in map:
+                self.base_map.append(row.copy())
 
         self.width: int = len(map[0]) if len(map) > 0 else 0
         self.height: int = len(map)
+
+
+    def reset(self) -> None:
+        self.map.clear()
+
+        for row in self.base_map:
+            self.map.append(row.copy())
 
 
     def add_to_tileset(self, tile: Tile) -> None:
@@ -33,7 +44,7 @@ class TileMap:
         for tile_data in data:
             txt: pygame.Surface | None = None
             if tile_data.get("texture") is not None:
-                txt = pygame.image.load(os.path.join(texture_folder, tile_data["texture"]))
+                txt = pygame.image.load(os.path.join(texture_folder, tile_data["texture"])).convert_alpha()
 
             self.add_to_tileset(Tile(
                 solid = tile_data.get("solid", False),

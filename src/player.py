@@ -24,7 +24,7 @@ class Player:
 
     def update_from_dict(self, data: dict, textures_folder: str) -> None:
         if data.get("sprite") is not None:
-            self.sprite = pygame.image.load(os.path.join(textures_folder, data["sprite"]))
+            self.sprite = pygame.image.load(os.path.join(textures_folder, data["sprite"])).convert_alpha()
 
         if data.get("position") is not None:
             self.position = Vec2(data["position"][0], data["position"][1])
@@ -63,8 +63,8 @@ class Player:
 
 
     def draw(self, surface: pygame.Surface, negative_offset: Vec2) -> None:
-        px: float = self.position.x - negative_offset.x
-        py: float = self.position.y - negative_offset.y
+        px: float = self.position.x - negative_offset.x + (self.size.x - self.sprite.get_width()) / 2
+        py: float = self.position.y - negative_offset.y + (self.size.y - self.sprite.get_height()) / 2
 
         surface.blit(self.sprite, (px, py))
 

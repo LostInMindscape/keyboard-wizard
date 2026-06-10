@@ -54,11 +54,11 @@ class RoomFeatures:
 
         ol: pygame.Surface | None = None
         if data.get("overlay") is not None:
-            ol = pygame.image.load(os.path.join(textures_folder, data["overlay"]))
+            ol = pygame.image.load(os.path.join(textures_folder, data["overlay"])).convert_alpha()
 
         bg: pygame.Surface | None = None
         if data.get("background") is not None:
-            bg = pygame.image.load(os.path.join(textures_folder, data["background"]))
+            bg = pygame.image.load(os.path.join(textures_folder, data["background"])).convert()
 
         return RoomFeatures(
             spawnpoint=sp,

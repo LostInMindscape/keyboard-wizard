@@ -20,6 +20,7 @@ class WorldScene(engine.scene.Scene):
     def __init__(self):
         self.command_input_state: bool = False
         self.command: str = ""
+        self.fps: int = 0
 
         json_text: str
         with open(os.path.join("assets", "map.json"), "r") as f:
@@ -64,12 +65,15 @@ class WorldScene(engine.scene.Scene):
         self.room_features: dict[tuple[int, int], RoomFeatures] = {}
         self._load_room_features(data["room_features"])
         self.spawnpoint_texture: pygame.Surface = \
-            pygame.image.load(os.path.join(ROOM_FEATURE_TEXTURES_PATH, "spawnpoint.png"))
+            pygame.image.load(os.path.join(ROOM_FEATURE_TEXTURES_PATH, "spawnpoint.png")).convert_alpha()
 
 
     def update(self, delta: float) -> None:
         for event in pygame.event.get():
             self._process_event(event)
+
+        if delta != 0.0:
+            self.fps = int(1 / delta)
 
         self._update_player(delta)
 
@@ -98,6 +102,8 @@ class WorldScene(engine.scene.Scene):
 
         if self.command_input_state:
             self._draw_command_input(window)
+
+        self.font.render_to(window, (5, 5), "FPS: " + str(self.fps))
 
 
     def get_current_room(self) -> tuple[int, int]:
@@ -136,14 +142,18 @@ class WorldScene(engine.scene.Scene):
                 if event.key == pygame.K_RETURN:
                     self._process_command()
                     self.command_input_state = False
-                elif pygame.K_a <= event.key <= pygame.K_z or event.key == pygame.K_SPACE:
-                    self.command += event.unicode
                 elif event.key == pygame.K_BACKSPACE and len(self.command) > 0:
                     self.command = self.command[:-1]
+                elif event.key == pygame.K_ESCAPE:
+                    self.command_input_state = False
+                    self.command = ""
+                elif pygame.K_a <= event.key <= pygame.K_z or event.key == pygame.K_SPACE:
+                    self.command += event.unicode
 
         else:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
                 self.command_input_state = True
+                self.player.direction = 0.0
             else:
                 self.player.handle_event(event)
 
@@ -177,8 +187,12 @@ class WorldScene(engine.scene.Scene):
 
         elif self.command == "recall":
             sp: Vec2 = self.get_room_features(self.player.saved_spawnpoint).spawnpoint
-            self.player.position.x = self.player.saved_spawnpoint[0] * self.room_size_pixels.x + sp.x
-            self.player.position.y = self.player.saved_spawnpoint[1] * self.room_size_pixels.y + sp.y
+            self.player.position.x = \
+                self.player.saved_spawnpoint[0] * self.room_size_pixels.x + sp.x - self.player.size.x * 0.5
+            self.player.position.y = \
+                self.player.saved_spawnpoint[1] * self.room_size_pixels.y + sp.y - self.player.size.y
+
+            self.tilemap.reset()
 
         elif self.command == "toggle":
             room: tuple[int, int] = self.get_current_room()
@@ -190,6 +204,10 @@ class WorldScene(engine.scene.Scene):
                     if self.tilemap.get_tile_at(x, y).toggle is not None:
                         self.tilemap.map[y][x] = self.tilemap.get_tile_at(x, y).toggle
 
+        elif self.command == "light":
+            rf: RoomFeatures = self.get_current_room_features()
+            rf.draw_overlay = not rf.draw_overlay
+
         self.command = ""
 
 
@@ -200,10 +218,8 @@ class WorldScene(engine.scene.Scene):
 
 
 if __name__ == "__main__":
+    main_window: pygame.Surface = pygame.display.set_mode((1600, 900))
     scene = WorldScene()
-    g = engine.game.Game(scene, 144)
-    g.run((
-        int(scene.room_size_pixels.x),
-        int(scene.room_size_pixels.y)
-    ))
+    g = engine.game.Game(main_window, scene, 144)
+    g.run()
 

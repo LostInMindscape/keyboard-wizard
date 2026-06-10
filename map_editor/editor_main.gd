@@ -16,7 +16,9 @@ extends Node2D
         print("Bottom-right tile:  ", cells[-1])
         print("Map size:           ", cells[-1] - cells[0])
 
+
 @export var file_name: String = "map.txt"
+@export var add_to_each: int = 0
 @export_tool_button("Export map") var f2: Callable = func():
     var layer: TileMapLayer = $TileMapLayer
     var cells := layer.get_used_cells()
@@ -26,18 +28,23 @@ extends Node2D
         return
     
     cells.sort()
-    var rooms: Vector2i = Vector2i(
+    var rooms_start: Vector2i = Vector2i(
+        ceili(float(cells[0].x) / room_size.x),
+        ceili(float(cells[0].y) / room_size.y)
+    )
+    var rooms_end: Vector2i = Vector2i(
         ceili(float(cells[-1].x) / room_size.x),
         ceili(float(cells[-1].y) / room_size.y)
     )
-    var tiles: Vector2i = rooms * room_size
+    var tiles_start: Vector2i = rooms_start * room_size
+    var tiles_end: Vector2i = rooms_end * room_size
     var empty_tiles: int = 0
     
     var atlas_width: int = 0
     for src: int in layer.tile_set.get_source_count():
         if layer.tile_set.get_source(src) is TileSetAtlasSource:
             var atlas_src: TileSetAtlasSource = layer.tile_set.get_source(src)
-            atlas_width = atlas_src.get_atlas_grid_size().y
+            atlas_width = atlas_src.get_atlas_grid_size().x
             break
     
     if atlas_width == 0:
@@ -47,22 +54,22 @@ extends Node2D
     var file: FileAccess = FileAccess.open(file_name, FileAccess.WRITE)
     
     file.store_string("[\n")
-    for y: int in tiles.y:
+    for y: int in range(tiles_start.y, tiles_end.y):
         file.store_string("    [")
-        for x: int in tiles.x:
+        for x: int in range(tiles_start.x, tiles_end.x):
             var atlas_coords: Vector2i = layer.get_cell_atlas_coords(Vector2i(x, y))
-            var id: int = atlas_coords.y * atlas_width + atlas_coords.x
+            var id: int = atlas_coords.y * atlas_width + atlas_coords.x + add_to_each
             
             if atlas_coords == -Vector2i.ONE:
                 empty_tiles += 1
                 id = 0
             
-            if x != tiles.x - 1:
+            if x != tiles_end.x - 1:
                 file.store_string(str(id, ", "))
             else:
                 file.store_string(str(id, "]"))
         
-        if y != tiles.y - 1:
+        if y != tiles_end.y - 1:
             file.store_string(",\n")
         else:
             file.store_string("\n")
