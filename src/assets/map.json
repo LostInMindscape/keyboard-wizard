@@ -162,89 +162,173 @@
         },
         {
             "room": [0, 0],
+            "background": "background_0.bmp",
             "processor": {
                 "position": [900, 200],
                 "color": "magenta"
             }
         },
         {
+            "room": [1, 0],
+            "background": "background_3.bmp"
+        },
+        {
             "room": [2, 0],
-            "spawnpoint": [4150, 600]
+            "background": "background_1.bmp",
+            "spawnpoint": [950, 600]
+        },
+        {
+            "room": [3, 0],
+            "background": "background_13.bmp"
         },
         {
             "room": [4, 0],
+            "background": "background_10.bmp",
             "processor": {
-                "position": [7800, 200],
+                "position": [1400, 200],
                 "color": "green"
             }
         },
         {
+            "room": [5, 0],
+            "background": "background_11.bmp"
+        },
+        {
             "room": [0, 1],
+            "background": "background_4.bmp",
             "processor": {
-                "position": [725, 1550],
+                "position": [725, 650],
                 "color": "cyan"
             }
         },
         {
             "room": [1, 1],
+            "background": "background_6.bmp",
             "processor": {
-                "position": [3025, 1525],
+                "position": [1425, 625],
                 "color": "red"
             }
         },
         {
+            "room": [2, 1],
+            "background": "borowka.png"
+        },
+        {
             "room": [3, 1],
+            "background": "background_14.bmp",
             "processor": {
-                "position": [5225, 1625],
+                "position": [425, 725],
                 "color": "yellow"
             }
         },
         {
+            "room": [5, 1],
+            "background": "background_1.bmp"
+        },
+        {
+            "room": [6, 1],
+            "background": "background_21.bmp"
+        },
+        {
+            "room": [0, 2],
+            "background": "background_2.bmp"
+        },
+        {
+            "room": [1, 2],
+            "background": "background_18.bmp"
+        },
+        {
             "room": [2, 2],
-            "spawnpoint": [4350, 2250]
+            "background": "background_19.bmp",
+            "spawnpoint": [1150, 450]
         },
         {
             "room": [3, 2],
-            "spawnpoint": [5100, 2500]
+            "background": "background_20.bmp",
+            "spawnpoint": [300, 700]
         },
         {
             "room": [4, 2],
-            "spawnpoint": [7050, 2600]
+            "background": "background_25.bmp",
+            "spawnpoint": [650, 800]
+        },
+        {
+            "room": [5, 2],
+            "background": "background_10.bmp"
         },
         {
             "room": [6, 2],
+            "background": "background_0.bmp",
             "processor": {
-                "position": [9775, 2025],
+                "position": [175, 225],
                 "color": "lime"
             }
         },
         {
             "room": [0, 3],
-            "spawnpoint": [1400, 3000]
+            "background": "background_5.bmp",
+            "spawnpoint": [1400, 300]
+        },
+        {
+            "room": [1, 3],
+            "background": "background_15.bmp"
+        },
+        {
+            "room": [2, 3],
+            "background": "background_0.bmp"
         },
         {
             "room": [3, 3],
-            "spawnpoint": [5000, 2950]
+            "background": "background_16.bmp",
+            "spawnpoint": [200, 250]
+        },
+        {
+            "room": [4, 3],
+            "background": "background_9.bmp"
+        },
+        {
+            "room": [5, 3],
+            "background": "background_1.bmp"
+        },
+        {
+            "room": [6, 3],
+            "background": "background_22.bmp"
+        },
+        {
+            "room": [0, 4],
+            "background": "background_0.bmp"
         },
         {
             "room": [1, 4],
+            "background": "background_7.bmp",
             "processor": {
-                "position": [3000, 3800],
+                "position": [1400, 200],
                 "color": "pink"
             }
         },
         {
+            "room": [2, 4],
+            "background": "background_24.bmp"
+        },
+        {
             "room": [3, 4],
-            "spawnpoint": [6200, 4400]
+            "background": "background_17.bmp",
+            "spawnpoint": [1400, 800]
+        },
+        {
+            "room": [4, 4],
+            "background": "background_23.bmp"
         },
         {
             "room": [5, 4],
-            "spawnpoint": [8350, 4050]
+            "background": "background_8.bmp",
+            "spawnpoint": [350, 450]
         },
         {
             "room": [6, 4],
+            "background": "background_12.bmp",
             "processor": {
-                "position": [10400, 3800],
+                "position": [800, 200],
                 "color": "blue"
             }
         }
