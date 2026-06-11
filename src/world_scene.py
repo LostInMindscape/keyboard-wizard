@@ -11,8 +11,9 @@ from room_features import RoomFeatures
 import sys
 import tilemap
 
+FONT_PATH: str                   = os.path.join("assets", "font")
 TEXTURES_PATH: str               = os.path.join("assets", "textures")
-PROCESSORS_TEXTURES_PATH: str       = os.path.join(TEXTURES_PATH, "processors")
+PROCESSORS_TEXTURES_PATH: str    = os.path.join(TEXTURES_PATH, "processors")
 TILESET_TEXTURES_PATH: str       = os.path.join(TEXTURES_PATH, "tileset")
 ROOM_FEATURE_TEXTURES_PATH: str  = os.path.join(TEXTURES_PATH, "room_features")
 
@@ -31,7 +32,7 @@ class WorldScene(engine.scene.Scene):
         # loading font
         self.font: freetype.Font = \
             freetype.Font(
-                data["font"]["name"],
+                os.path.join(FONT_PATH, data["font"]["name"]),
                 data["font"].get("size", 30)
             ) if "font" in data and "name" in data["font"] else \
             freetype.SysFont(
@@ -96,7 +97,7 @@ class WorldScene(engine.scene.Scene):
             current_room[1] * window.get_height()
         )
 
-        window.fill(pygame.Color(0x20, 0x20, 0x20))
+        window.fill(pygame.Color(0x20, 0x20, 0x40))
 
         rf: RoomFeatures = self.get_current_room_features()
 
