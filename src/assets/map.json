@@ -191,7 +191,8 @@
         },
         {
             "room": [5, 0],
-            "background": "background_11.bmp"
+            "background": "background_11.bmp",
+            "energy": [325, 225]
         },
         {
             "room": [0, 1],
@@ -322,7 +323,7 @@
         {
             "room": [5, 4],
             "background": "background_8.bmp",
-            "spawnpoint": [350, 450]
+            "spawnpoint": [850, 500]
         },
         {
             "room": [6, 4],
@@ -344,6 +345,7 @@
         "max_speed": 500,
         "gravity": 2500,
         "jump_acceleration": 1100,
+        "boosted_jump_acceleration": 2000,
         "jump_cancel": 400
     },
     "room_size_tiles": [32, 18],

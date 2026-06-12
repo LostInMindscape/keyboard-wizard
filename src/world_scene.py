@@ -11,18 +11,28 @@ from room_features import RoomFeatures
 import sys
 import tilemap
 
-FONT_PATH: str                   = os.path.join("assets", "font")
-TEXTURES_PATH: str               = os.path.join("assets", "textures")
-PROCESSORS_TEXTURES_PATH: str    = os.path.join(TEXTURES_PATH, "processors")
-TILESET_TEXTURES_PATH: str       = os.path.join(TEXTURES_PATH, "tileset")
-ROOM_FEATURE_TEXTURES_PATH: str  = os.path.join(TEXTURES_PATH, "room_features")
+FONT_PATH: str                      = os.path.join("assets", "font")
+TEXTURES_PATH: str                  = os.path.join("assets", "textures")
+PROCESSORS_TEXTURES_PATH: str       = os.path.join(TEXTURES_PATH, "processors")
+TILESET_TEXTURES_PATH: str          = os.path.join(TEXTURES_PATH, "tileset")
+ROOM_FEATURE_TEXTURES_PATH: str     = os.path.join(TEXTURES_PATH, "room_features")
+
+STATE_NORMAL: int                   = 0
+STATE_COMMAND_INPUT: int            = 1
+STATE_TRANSITION: int               = 2
 
 
 class WorldScene(engine.scene.Scene):
     def __init__(self):
-        self.command_input_state: bool = False
+        self.state: int = STATE_NORMAL
         self.command: str = ""
         self.fps: int = 0
+
+        self.transition_timer: float = 0.0
+        self.transition_target: Vec2 = Vec2(0, 0)
+
+        self.energy_texture: pygame.Surface = \
+            pygame.image.load(os.path.join(TEXTURES_PATH, "energy.bmp")).convert_alpha()
 
         json_text: str
         with open(os.path.join("assets", "map.json"), "r") as f:
@@ -40,6 +50,7 @@ class WorldScene(engine.scene.Scene):
             )
 
         # loading player
+        self.player_spawn: Vec2 = Vec2(data["player"]["position"][0], data["player"]["position"][1])
         self.player = player.Player()
         self.player.update_from_dict(data["player"], TEXTURES_PATH)
 
@@ -74,6 +85,7 @@ class WorldScene(engine.scene.Scene):
 
         # loading processors
         self.processors: dict[str, pygame.Surface] = {}
+        self.collected_processors: list[str] = []
         for key in data["processors"]:
             self.processors[key] = \
                 pygame.image.load(os.path.join(PROCESSORS_TEXTURES_PATH, data["processors"][key])).convert_alpha()
@@ -82,6 +94,17 @@ class WorldScene(engine.scene.Scene):
     def update(self, delta: float) -> None:
         for event in pygame.event.get():
             self._process_event(event)
+
+        if self.state == STATE_TRANSITION:
+            if self.transition_timer < 0.5 <= self.transition_timer + delta:
+                self.player.position = self.transition_target
+                self.player.energy = self.player.max_energy
+
+            self.transition_timer += delta
+
+            if self.transition_timer > 1.0:
+                self.state = STATE_NORMAL
+
 
         if delta != 0.0:
             self.fps = int(1 / delta)
@@ -105,6 +128,7 @@ class WorldScene(engine.scene.Scene):
 
         self.tilemap.draw(window, offset)
 
+        rf.try_draw_energy(window, self.energy_texture)
         rf.try_draw_spawnpoint(
             window, self.spawnpoint_texture,
             self.player.touched_spawnpoint is not None, self.key_texture
@@ -112,11 +136,28 @@ class WorldScene(engine.scene.Scene):
 
         self.player.draw(window, offset)
 
-        rf.try_draw_overlay(window)
-        rf.try_draw_processor(window, self.processors)
+        if rf.processor is not None and rf.processor.color not in self.collected_processors:
+           rf.try_draw_processor(window, self.processors)
 
-        if self.command_input_state:
+        rf.try_draw_overlay(window)
+
+        for i in range(self.player.energy):
+            window.blit(
+                self.energy_texture,
+                (20 + (self.energy_texture.get_width() + 20) * i, 20)
+            )
+
+        if self.state == STATE_COMMAND_INPUT:
             self._draw_command_input(window)
+        elif self.state == STATE_TRANSITION:
+            pygame.draw.circle(
+                window, pygame.Color(0x20, 0x20, 0x20),
+                (
+                    int(self.player.position.x) % window.get_width(),
+                    int(self.player.position.y) % window.get_height()
+                ),
+                abs(self.transition_timer if self.transition_timer < 0.5 else 1 - self.transition_timer) * 4096
+            )
 
         self.font.render_to(window, (5, 5), "FPS: " + str(self.fps))
 
@@ -152,25 +193,35 @@ class WorldScene(engine.scene.Scene):
             pygame.quit()
             sys.exit()
 
-        elif self.command_input_state:
+        elif self.state == STATE_COMMAND_INPUT:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     self._process_command()
-                    self.command_input_state = False
+
+                    if self.state == STATE_COMMAND_INPUT:
+                        self.state = STATE_NORMAL
                 elif event.key == pygame.K_BACKSPACE and len(self.command) > 0:
                     self.command = self.command[:-1]
                 elif event.key == pygame.K_ESCAPE:
-                    self.command_input_state = False
+                    self.state = STATE_NORMAL
                     self.command = ""
                 elif pygame.K_a <= event.key <= pygame.K_z or event.key == pygame.K_SPACE:
                     self.command += event.unicode
 
         else:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
-                self.command_input_state = True
+                self.state = STATE_COMMAND_INPUT
                 self.player.direction = 0.0
             else:
                 self.player.handle_event(event)
+
+
+    def get_local_player_rect(self, room: tuple[int, int]) -> pygame.Rect:
+        return pygame.Rect(
+            self.player.position.x - room[0] * self.room_size_pixels.x,
+            self.player.position.y - room[1] * self.room_size_pixels.y,
+            self.player.size.x, self.player.size.y
+        )
 
 
     def _update_player(self, delta: float) -> None:
@@ -188,11 +239,7 @@ class WorldScene(engine.scene.Scene):
                 self.spawnpoint_texture.get_width(), self.spawnpoint_texture.get_height()
             )
 
-            player_rect: pygame.Rect = pygame.Rect(
-                self.player.position.x - room[0] * self.room_size_pixels.x,
-                self.player.position.y - room[1] * self.room_size_pixels.y,
-                self.player.size.x, self.player.size.y
-            )
+            player_rect: pygame.Rect = self.get_local_player_rect(room)
 
             if sp_rect.colliderect(player_rect):
                 self.player.touched_spawnpoint = room
@@ -202,19 +249,52 @@ class WorldScene(engine.scene.Scene):
         else:
             self.player.touched_spawnpoint = None
 
+        # check collisions with processor
+        if rf.processor is not None and rf.processor.color not in self.collected_processors:
+            proc_rect: pygame.Rect = pygame.Rect(
+                rf.processor.position.x - self.processors[rf.processor.color].get_width() * 0.5,
+                rf.processor.position.y - self.processors[rf.processor.color].get_height() * 0.5,
+                self.processors[rf.processor.color].get_width(),
+                self.processors[rf.processor.color].get_height()
+            )
+
+            player_rect: pygame.Rect = self.get_local_player_rect(room)
+
+            if proc_rect.colliderect(player_rect):
+                self.collected_processors.append(rf.processor.color)
+
+        if rf.energy is not None:
+            en_rect: pygame.Rect = pygame.Rect(
+                rf.energy.x - self.energy_texture.get_width() * 0.5,
+                rf.energy.y - self.energy_texture.get_height() * 0.5,
+                self.energy_texture.get_width(),
+                self.energy_texture.get_height()
+            )
+
+            player_rect: pygame.Rect = self.get_local_player_rect(room)
+
+            if en_rect.colliderect(player_rect):
+                rf.energy = None
+                self.player.max_energy += 1
+                self.player.energy = self.player.max_energy
+
 
     def _process_command(self):
-        if self.command == "":
+        if self.player.energy <= 0:
             pass
 
         elif self.command == "recall":
-            sp: Vec2 = self.get_room_features(self.player.saved_spawnpoint).spawnpoint
-            self.player.position.x = \
-                self.player.saved_spawnpoint[0] * self.room_size_pixels.x + sp.x - self.player.size.x * 0.5
-            self.player.position.y = \
-                self.player.saved_spawnpoint[1] * self.room_size_pixels.y + sp.y - self.player.size.y
+            if self.player.saved_spawnpoint is not None:
+                sp: Vec2 = self.get_room_features(self.player.saved_spawnpoint).spawnpoint
 
-            self.tilemap.reset()
+                self.transition_target = Vec2(
+                    self.player.saved_spawnpoint[0] * self.room_size_pixels.x + sp.x - self.player.size.x * 0.5,
+                    self.player.saved_spawnpoint[1] * self.room_size_pixels.y + sp.y - self.player.size.y
+                )
+                self.transition_timer = 0.0
+                self.state = STATE_TRANSITION
+
+                self.tilemap.reset()
 
         elif self.command == "toggle":
             room: tuple[int, int] = self.get_current_room()
@@ -226,10 +306,22 @@ class WorldScene(engine.scene.Scene):
                     if self.tilemap.get_tile_at(x, y).toggle is not None:
                         self.tilemap.map[y][x] = self.tilemap.get_tile_at(x, y).toggle
 
+        elif self.command == "jumpboost":
+            self.player.boosted_jump = True
+
+        elif self.command == "return":
+            self.transition_target = Vec2(self.player_spawn.x, self.player_spawn.y)
+            self.transition_timer = 0.0
+            self.state = STATE_TRANSITION
+
         elif self.command == "light":
             rf: RoomFeatures = self.get_current_room_features()
             rf.draw_overlay = not rf.draw_overlay
 
+        else:
+            self.player.energy += 1
+
+        self.player.energy -= 1
         self.command = ""
 
 

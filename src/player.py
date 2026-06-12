@@ -26,22 +26,27 @@ class Player:
             size: Vec2 = Vec2(100, 100),
     ) -> None:
         self.sprites: list[pygame.Surface] | None  = None
-        self.position: Vec2                 = position
-        self.velocity: Vec2                 = Vec2(0.0, 0.0)
-        self.size: Vec2                     = size
+        self.position: Vec2                     = position
+        self.velocity: Vec2                     = Vec2(0.0, 0.0)
+        self.size: Vec2                         = size
 
-        self.acceleration: float            = 2400.0
-        self.max_speed: float               = 600.0
-        self.gravity: float                 = 2000.0
-        self.jump_acceleration: float       = 1000.0
-        self.jump_cancel: float             = 500.0
+        self.energy: int = 1
+        self.max_energy: int = 1
 
-        self.direction: float               = 0.0
-        self.on_ground: bool                = False
-        self.can_jump_cancel: bool          = False
+        self.acceleration: float                = 2400.0
+        self.max_speed: float                   = 600.0
+        self.gravity: float                     = 2000.0
+        self.jump_acceleration: float           = 1000.0
+        self.boosted_jump_acceleration: float   = 2000.0
+        self.jump_cancel: float                 = 500.0
+
+        self.direction: float                   = 0.0
+        self.on_ground: bool                    = False
+        self.can_jump_cancel: bool              = False
+        self.boosted_jump: bool                 = False
 
         self.touched_spawnpoint: tuple[int, int] | None  = None
-        self.saved_spawnpoint: tuple[int, int]           = (1, 1)
+        self.saved_spawnpoint: tuple[int, int] | None    = None
 
         self.sprite_timer: float = 0.0
         self.sprite_dir: float = 1.0
@@ -71,6 +76,9 @@ class Player:
         if data.get("jump_acceleration") is not None:
             self.jump_acceleration = data["jump_acceleration"]
 
+        if data.get("boosted_jump_acceleration") is not None:
+            self.boosted_jump_acceleration = data["boosted_jump_acceleration"]
+
         if data.get("jump_cancel") is not None:
             self.jump_cancel = data["jump_cancel"]
 
@@ -89,10 +97,17 @@ class Player:
             elif event.key == pygame.K_SPACE or event.key == pygame.K_w:
                 if self.on_ground:
                     self.can_jump_cancel = True
-                    self.velocity.y -= self.jump_acceleration
+
+                    if self.boosted_jump:
+                        self.velocity.y -= self.boosted_jump_acceleration
+                        self.boosted_jump = False
+                    else:
+                        self.velocity.y -= self.jump_acceleration
             elif event.key == pygame.K_e:
                 if self.touched_spawnpoint is not None:
                     self.saved_spawnpoint = self.touched_spawnpoint
+                    self.energy = self.max_energy
+                    self.boosted_jump = False
 
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_a:

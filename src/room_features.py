@@ -1,4 +1,5 @@
 import math
+import random
 
 from engine.vec2 import Vec2
 import os
@@ -20,12 +21,14 @@ class RoomFeatures:
             background: pygame.Surface | None = None,
             draw_overlay: bool = True,
             processor: Processor | None = None,
+            energy: Vec2 | None = None
     ) -> None:
         self.spawnpoint: Vec2 | None = spawnpoint
         self.overlay: pygame.Surface | None = overlay
         self.background: pygame.Surface | None = background
         self.draw_overlay: bool = draw_overlay
         self.processor: Processor | None = processor
+        self.energy: Vec2 | None = energy
 
         self._start_time: float = time.perf_counter()
 
@@ -80,7 +83,18 @@ class RoomFeatures:
                 textures[self.processor.color],
                 (
                     self.processor.position.x,
-                    self.processor.position.y + math.sin((time.perf_counter() - self._start_time) * 2.0) * 30
+                    self.processor.position.y + math.sin((time.perf_counter() - self._start_time) * 2.0) * 15
+                )
+            )
+
+
+    def try_draw_energy(self, surface: pygame.Surface, texture: pygame.Surface) -> None:
+        if self.energy is not None:
+            surface.blit(
+                texture,
+                (
+                    self.energy.x - texture.get_width() * 0.5 + random.randint(-5, 5),
+                    self.energy.y - texture.get_height() * 0.5 + random.randint(-5, 5)
                 )
             )
 
@@ -110,10 +124,15 @@ class RoomFeatures:
                 Vec2(data["processor"]["position"][0], data["processor"]["position"][1])
             )
 
+        en: Vec2 | None = None
+        if data.get("energy") is not None:
+            en = Vec2(data["energy"][0], data["energy"][1])
+
         return RoomFeatures(
             spawnpoint      = sp,
             overlay         = ol,
             background      = bg,
             draw_overlay    = draw_ol,
-            processor       = proc
+            processor       = proc,
+            energy          = en
         )
