@@ -30,8 +30,8 @@ class Player:
         self.velocity: Vec2                     = Vec2(0.0, 0.0)
         self.size: Vec2                         = size
 
-        self.energy: int = 3
-        self.max_energy: int = 3
+        self.energy: int                        = 1
+        self.max_energy: int                    = 1
 
         self.acceleration: float                = 2400.0
         self.max_speed: float                   = 600.0

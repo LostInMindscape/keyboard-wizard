@@ -1,4 +1,6 @@
 import json
+import math
+import time
 
 import engine.game
 import engine.scene
@@ -79,17 +81,18 @@ class WorldScene(engine.scene.Scene):
 
         # loading room features
         self.empty_room: RoomFeatures = RoomFeatures()
+        self.altar_room: tuple[int, int] = (data["altar_room"][0], data["altar_room"][1])
         self.room_features: dict[tuple[int, int], RoomFeatures] = {}
         self._load_room_features(data["room_features"])
 
         self.key_texture: pygame.Surface = \
             pygame.image.load(os.path.join(ROOM_FEATURE_TEXTURES_PATH, "key_e.png")).convert_alpha()
         self.spawnpoint_texture: pygame.Surface = \
-            pygame.image.load(os.path.join(ROOM_FEATURE_TEXTURES_PATH, "spawnpoint.png")).convert_alpha()
+            pygame.image.load(os.path.join(ROOM_FEATURE_TEXTURES_PATH, "spawnpoint.bmp")).convert_alpha()
 
         # loading processors
         self.processors: dict[str, pygame.Surface] = {}
-        self.collected_processors: list[str] = []
+        self.collected_processors: list[str] = ["red", "green", "magenta", "yellow"] * 2
         for key in data["processors"]:
             self.processors[key] = \
                 pygame.image.load(os.path.join(PROCESSORS_TEXTURES_PATH, data["processors"][key])).convert_alpha()
@@ -126,16 +129,15 @@ class WorldScene(engine.scene.Scene):
 
 
     def draw(self, window: pygame.Surface) -> None:
-        current_room: tuple[int, int] = self.get_current_room()
+        room: tuple[int, int] = self.get_current_room()
 
         offset: Vec2 = Vec2(
-            current_room[0] * window.get_width(),
-            current_room[1] * window.get_height()
+            room[0] * window.get_width(),
+            room[1] * window.get_height()
         )
 
         window.fill(pygame.Color(0x20, 0x20, 0x40))
 
-        room: tuple[int, int] = self.get_current_room()
         rf: RoomFeatures = self.get_room_features(room)
 
         rf.try_draw_background(window)
@@ -158,6 +160,21 @@ class WorldScene(engine.scene.Scene):
 
         if rf.processor is not None and rf.processor.color not in self.collected_processors:
            rf.try_draw_processor(window, self.processors)
+
+        if self.altar_room == room and len(self.collected_processors) != 0:
+            vec: Vec2 = Vec2(
+                0, 200 + 50 * math.sin(time.perf_counter())
+            ).rotated(time.perf_counter() * 0.8)
+            mid: Vec2 = Vec2(
+                self.room_size_pixels.x * 0.5 - self.processors[self.collected_processors[0]].get_width() * 0.5,
+                self.room_size_pixels.y * 0.5 - self.processors[self.collected_processors[0]].get_height() * 0.5
+            )
+            rot: float = math.tau / len(self.processors)
+
+            for proc in self.collected_processors:
+                pos: Vec2 = vec + mid
+                window.blit(self.processors[proc], (pos.x, pos.y))
+                vec = vec.rotated(rot)
 
         rf.try_draw_overlay(window)
 

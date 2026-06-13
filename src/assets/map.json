@@ -152,6 +152,7 @@
         {"solid": false, "texture": "tile_52.png"},
         {"solid": false, "texture": "tile_53.png"}
     ],
+    "altar_room": [2, 1],
     "room_features": [
         {
             "comment": "this is an example room for further reference",
@@ -216,7 +217,9 @@
         },
         {
             "room": [2, 1],
-            "background": "borowka.png"
+            "background": "background_altar.bmp",
+            "overlay": "overlay_altar.bmp",
+            "draw_overlay": false
         },
         {
             "room": [3, 1],
