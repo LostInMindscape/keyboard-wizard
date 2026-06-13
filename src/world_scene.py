@@ -33,6 +33,10 @@ class WorldScene(engine.scene.Scene):
 
         self.energy_texture: pygame.Surface = \
             pygame.image.load(os.path.join(TEXTURES_PATH, "energy.bmp")).convert_alpha()
+        self.portal_off_texture: pygame.Surface = \
+            pygame.image.load(os.path.join(TEXTURES_PATH, "portal.bmp")).convert_alpha()
+        self.portal_on_texture: pygame.Surface = \
+            pygame.image.load(os.path.join(TEXTURES_PATH, "portal_on.bmp")).convert_alpha()
 
         json_text: str
         with open(os.path.join("assets", "map.json"), "r") as f:
@@ -90,6 +94,13 @@ class WorldScene(engine.scene.Scene):
             self.processors[key] = \
                 pygame.image.load(os.path.join(PROCESSORS_TEXTURES_PATH, data["processors"][key])).convert_alpha()
 
+        # loading portals
+        self.portals: dict[tuple[int, int], Vec2] = {}
+        self.portals_on: bool = False
+        for portal in data["portals"]:
+            self.portals[(portal["room"][0], portal["room"][1])] = \
+                Vec2(portal["position"][0], portal["position"][1])
+
 
     def update(self, delta: float) -> None:
         for event in pygame.event.get():
@@ -99,6 +110,8 @@ class WorldScene(engine.scene.Scene):
             if self.transition_timer < 0.5 <= self.transition_timer + delta:
                 self.player.position = self.transition_target
                 self.player.energy = self.player.max_energy
+                self.tilemap.reset()
+                self.portals_on = False
 
             self.transition_timer += delta
 
@@ -122,7 +135,8 @@ class WorldScene(engine.scene.Scene):
 
         window.fill(pygame.Color(0x20, 0x20, 0x40))
 
-        rf: RoomFeatures = self.get_current_room_features()
+        room: tuple[int, int] = self.get_current_room()
+        rf: RoomFeatures = self.get_room_features(room)
 
         rf.try_draw_background(window)
 
@@ -133,6 +147,12 @@ class WorldScene(engine.scene.Scene):
             window, self.spawnpoint_texture,
             self.player.touched_spawnpoint is not None, self.key_texture
         )
+
+        if room in self.portals.keys():
+            window.blit(
+                self.portal_on_texture if self.portals_on else self.portal_off_texture,
+                (self.portals[room].x, self.portals[room].y)
+            )
 
         self.player.draw(window, offset)
 
@@ -209,10 +229,28 @@ class WorldScene(engine.scene.Scene):
                     self.command += event.unicode
 
         else:
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
-                self.state = STATE_COMMAND_INPUT
-                self.player.direction = 0.0
-            else:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    self.state = STATE_COMMAND_INPUT
+                    self.player.direction = 0.0
+
+                elif event.key == pygame.K_e:
+                    if self.player.touched_spawnpoint is not None:
+                        self.player.saved_spawnpoint = self.player.touched_spawnpoint
+
+                        self.transition_target = Vec2(
+                            self.player.position.x,
+                            self.player.position.y
+                        )
+                        self.transition_timer = 0.0
+
+                        self.state = STATE_TRANSITION
+                        self.boosted_jump = False
+
+                else:
+                    self.player.handle_event(event)
+
+            elif event.type == pygame.KEYUP:
                 self.player.handle_event(event)
 
 
@@ -245,7 +283,6 @@ class WorldScene(engine.scene.Scene):
                 self.player.touched_spawnpoint = room
             else:
                 self.player.touched_spawnpoint = None
-
         else:
             self.player.touched_spawnpoint = None
 
@@ -263,6 +300,7 @@ class WorldScene(engine.scene.Scene):
             if proc_rect.colliderect(player_rect):
                 self.collected_processors.append(rf.processor.color)
 
+        # check collisions with energy
         if rf.energy is not None:
             en_rect: pygame.Rect = pygame.Rect(
                 rf.energy.x - self.energy_texture.get_width() * 0.5,
@@ -277,6 +315,28 @@ class WorldScene(engine.scene.Scene):
                 rf.energy = None
                 self.player.max_energy += 1
                 self.player.energy = self.player.max_energy
+
+        # check collisions with portal
+        if self.portals_on and self.state == STATE_NORMAL and self.portals.get(room) is not None:
+            portal_rect: pygame.Rect = pygame.Rect(
+                self.portals[room].x,
+                self.portals[room].y,
+                self.portal_on_texture.get_width(),
+                self.portal_on_texture.get_height()
+            )
+
+            player_rect: pygame.Rect = self.get_local_player_rect(room)
+
+            if portal_rect.colliderect(player_rect):
+                self.state = STATE_TRANSITION
+                self.transition_timer = 0.0
+                for key in self.portals.keys():
+                    if key != room:
+                        self.transition_target = Vec2(
+                            key[0] * self.room_size_pixels.x + self.portals[key].x +
+                                self.portal_off_texture.get_width()* 0.5,
+                            key[1] * self.room_size_pixels.y + self.portals[key].y
+                        )
 
 
     def _process_command(self):
@@ -317,6 +377,9 @@ class WorldScene(engine.scene.Scene):
         elif self.command == "light":
             rf: RoomFeatures = self.get_current_room_features()
             rf.draw_overlay = not rf.draw_overlay
+
+        elif self.command == "charge" and self.portals.get(self.get_current_room()) is not None:
+            self.portals_on = True
 
         else:
             self.player.energy += 1

@@ -30,8 +30,8 @@ class Player:
         self.velocity: Vec2                     = Vec2(0.0, 0.0)
         self.size: Vec2                         = size
 
-        self.energy: int = 1
-        self.max_energy: int = 1
+        self.energy: int = 3
+        self.max_energy: int = 3
 
         self.acceleration: float                = 2400.0
         self.max_speed: float                   = 600.0
@@ -103,11 +103,6 @@ class Player:
                         self.boosted_jump = False
                     else:
                         self.velocity.y -= self.jump_acceleration
-            elif event.key == pygame.K_e:
-                if self.touched_spawnpoint is not None:
-                    self.saved_spawnpoint = self.touched_spawnpoint
-                    self.energy = self.max_energy
-                    self.boosted_jump = False
 
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_a:
