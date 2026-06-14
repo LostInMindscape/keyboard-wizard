@@ -34,8 +34,8 @@ class WorldScene(engine.scene.Scene):
         self.transition_timer: float = 0.0
         self.transition_target: Vec2 = Vec2(0, 0)
 
-        self.font_color_energy: pygame.Color = pygame.Color(0x80, 0x80, 0xd0)
-        self.font_color_no_energy: pygame.Color = pygame.Color(0xd0, 0x80, 0x80)
+        self.font_color_energy: pygame.Color = pygame.Color(0x80, 0x80, 0xc0)
+        self.font_color_no_energy: pygame.Color = pygame.Color(0xc0, 0x80, 0x80)
 
         self.energy_texture: pygame.Surface = \
             pygame.image.load(os.path.join(TEXTURES_PATH, "energy.bmp")).convert_alpha()
@@ -244,7 +244,9 @@ class WorldScene(engine.scene.Scene):
         background.fill(pygame.Color(0x40, 0x40, 0x40))
         background.set_alpha(191)
 
-        text_surface: pygame.Surface = self.font.render(">" + self.command + "_", (0x80, 0x80, 0xB0))[0]
+        text_surface: pygame.Surface = \
+            self.font.render(">" + self.command + "_", self.font_color_energy)[0] if self.player.energy > 0 else \
+            self.font.render(">Insufficient energy_", self.font_color_no_energy)[0]
         background.blit(text_surface, (5, background.get_height() - 5 - text_surface.get_height()))
 
         window.blit(background, (10, window.get_height() - self.font.size - 20))
@@ -386,7 +388,7 @@ class WorldScene(engine.scene.Scene):
 
     def _process_command(self):
         if self.player.energy <= 0:
-            pass
+            return
 
         elif self.command == "recall":
             if self.player.saved_spawnpoint is not None:
