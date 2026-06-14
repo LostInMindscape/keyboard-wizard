@@ -423,7 +423,11 @@ class WorldScene(engine.scene.Scene):
 
         elif self.command == "light":
             rf: RoomFeatures = self.get_current_room_features()
-            rf.draw_overlay = not rf.draw_overlay
+
+            if rf.overlay is not None:
+                rf.draw_overlay = not rf.draw_overlay
+            else:
+                self.player.energy += 1
 
         elif self.command == "charge" and self.portals.get(self.get_current_room()) is not None:
             self.portals_on = True
