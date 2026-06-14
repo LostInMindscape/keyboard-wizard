@@ -40,7 +40,7 @@ class Player:
         self.boosted_jump_acceleration: float   = 2000.0
         self.jump_cancel: float                 = 500.0
 
-        self.direction: float                   = 0.0
+        self.direction: int                     = 0
         self.on_ground: bool                    = False
         self.can_jump_cancel: bool              = False
         self.boosted_jump: bool                 = False
@@ -113,6 +113,8 @@ class Player:
                 if self.can_jump_cancel and self.velocity.y < 0:
                     self.can_jump_cancel = False
                     self.velocity.y += self.jump_cancel
+
+        self.direction = max(-1, min(1, self.direction))
 
 
     def draw(self, surface: pygame.Surface, negative_offset: Vec2) -> None:

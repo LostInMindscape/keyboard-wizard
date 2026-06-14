@@ -39,8 +39,6 @@ class WorldScene(engine.scene.Scene):
 
         self.energy_texture: pygame.Surface = \
             pygame.image.load(os.path.join(TEXTURES_PATH, "energy.bmp")).convert_alpha()
-        self.energy_drained_texture: pygame.Surface = \
-            pygame.image.load(os.path.join(TEXTURES_PATH, "energy_drained.bmp")).convert_alpha()
         self.portal_off_texture: pygame.Surface = \
             pygame.image.load(os.path.join(TEXTURES_PATH, "portal.bmp")).convert_alpha()
         self.portal_on_texture: pygame.Surface = \
