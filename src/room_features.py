@@ -77,15 +77,15 @@ class RoomFeatures:
             surface.blit(self.overlay, dest)
 
 
-    def try_draw_processor(self, surface: pygame.Surface, textures: dict[str, pygame.Surface]) -> None:
-        if self.processor is not None:
-            surface.blit(
-                textures[self.processor.color],
-                (
-                    self.processor.position.x,
-                    self.processor.position.y + math.sin((time.perf_counter() - self._start_time) * 2.0) * 15
-                )
+    def draw_processor(self, surface: pygame.Surface, textures: dict[str, pygame.Surface]) -> None:
+        texture: pygame.Surface = textures[self.processor.color]
+        surface.blit(
+            texture,
+            (
+                self.processor.position.x - texture.get_width() * 0.5,
+                self.processor.position.y + math.sin((time.perf_counter() - self._start_time) * 2.0) * 15 - texture.get_width() * 0.5
             )
+        )
 
 
     def try_draw_energy(self, surface: pygame.Surface, texture: pygame.Surface) -> None:

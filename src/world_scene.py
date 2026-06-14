@@ -29,12 +29,18 @@ class WorldScene(engine.scene.Scene):
         self.state: int = STATE_NORMAL
         self.command: str = ""
         self.fps: int = 0
+        self.draw_fps: bool = False
 
         self.transition_timer: float = 0.0
         self.transition_target: Vec2 = Vec2(0, 0)
 
+        self.font_color_energy: pygame.Color = pygame.Color(0x80, 0x80, 0xd0)
+        self.font_color_no_energy: pygame.Color = pygame.Color(0xd0, 0x80, 0x80)
+
         self.energy_texture: pygame.Surface = \
             pygame.image.load(os.path.join(TEXTURES_PATH, "energy.bmp")).convert_alpha()
+        self.energy_drained_texture: pygame.Surface = \
+            pygame.image.load(os.path.join(TEXTURES_PATH, "energy_drained.bmp")).convert_alpha()
         self.portal_off_texture: pygame.Surface = \
             pygame.image.load(os.path.join(TEXTURES_PATH, "portal.bmp")).convert_alpha()
         self.portal_on_texture: pygame.Surface = \
@@ -92,7 +98,7 @@ class WorldScene(engine.scene.Scene):
 
         # loading processors
         self.processors: dict[str, pygame.Surface] = {}
-        self.collected_processors: list[str] = ["red", "green", "magenta", "yellow"] * 2
+        self.collected_processors: list[str] = []
         for key in data["processors"]:
             self.processors[key] = \
                 pygame.image.load(os.path.join(PROCESSORS_TEXTURES_PATH, data["processors"][key])).convert_alpha()
@@ -159,7 +165,7 @@ class WorldScene(engine.scene.Scene):
         self.player.draw(window, offset)
 
         if rf.processor is not None and rf.processor.color not in self.collected_processors:
-           rf.try_draw_processor(window, self.processors)
+           rf.draw_processor(window, self.processors)
 
         if self.altar_room == room and len(self.collected_processors) != 0:
             vec: Vec2 = Vec2(
@@ -178,11 +184,26 @@ class WorldScene(engine.scene.Scene):
 
         rf.try_draw_overlay(window)
 
-        for i in range(self.player.energy):
-            window.blit(
-                self.energy_texture,
-                (20 + (self.energy_texture.get_width() + 20) * i, 20)
-            )
+        self.font.render_to(
+            window,
+            (5, 5), "Energy: " + str(self.player.energy) + "/" + str(self.player.max_energy),
+            self.font_color_no_energy if self.player.energy == 0 else self.font_color_energy,
+        )
+
+        # i: int = 0
+        # for _ in range(self.player.energy):
+        #     window.blit(
+        #         self.energy_texture,
+        #         (20 + (self.energy_texture.get_width() + 20) * i, 20)
+        #     )
+        #     i += 1
+        #
+        # while i < self.player.max_energy:
+        #     window.blit(
+        #         self.energy_drained_texture,
+        #         (20 + (self.energy_drained_texture.get_width() + 20) * i, 20)
+        #     )
+        #     i += 1
 
         if self.state == STATE_COMMAND_INPUT:
             self._draw_command_input(window)
@@ -196,7 +217,13 @@ class WorldScene(engine.scene.Scene):
                 abs(self.transition_timer if self.transition_timer < 0.5 else 1 - self.transition_timer) * 4096
             )
 
-        self.font.render_to(window, (5, 5), "FPS: " + str(self.fps))
+        if self.draw_fps:
+            fps_text: pygame.Surface = self.font.render("FPS: " + str(self.fps))[0]
+            window.blit(
+                fps_text,
+                (window.get_width() - 245, 5)
+            )
+            # self.font.render_to(window, (5, 5), "FPS: " + str(self.fps))
 
 
     def get_current_room(self) -> tuple[int, int]:
@@ -263,6 +290,9 @@ class WorldScene(engine.scene.Scene):
 
                         self.state = STATE_TRANSITION
                         self.boosted_jump = False
+
+                elif event.key == pygame.K_p:
+                    self.draw_fps = not self.draw_fps
 
                 else:
                     self.player.handle_event(event)
