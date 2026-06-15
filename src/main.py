@@ -1,4 +1,4 @@
-from asyncio import print_call_graph
+import os.path
 
 import engine.game
 import engine.scene
@@ -8,6 +8,9 @@ import start_scene
 import world_scene
 
 if __name__ == "__main__":
+    pygame.display.set_caption("Keyboard wizard")
+    pygame.display.set_icon(pygame.image.load(os.path.join("assets", "textures", "icon.bmp")))
+
     window_size: tuple[int, int] = (1600, 900)
     main_window: pygame.Surface = pygame.display.set_mode(window_size)
 
