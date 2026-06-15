@@ -1,4 +1,4 @@
-import src.engine.scene as scene
+import engine.scene as scene
 import time
 import pygame
 
@@ -10,14 +10,14 @@ class Game:
         self._target_fps = target_fps
         self._target_frame_time = 1 / target_fps
 
-        self.next_scene: scene.Scene | None = first_scene
+        self.first_scene: scene.Scene | None = first_scene
         self.window: pygame.Surface = window
 
 
     def run(self) -> None:
         last_frame_time: float = time.time()
-        current_scene: scene.Scene = self.next_scene
-        self.next_scene = None
+        current_scene: scene.Scene = self.first_scene
+        self.first_scene = None
 
         while True:
             current_time: float = time.time()
@@ -28,9 +28,9 @@ class Game:
             current_scene.draw(self.window)
             pygame.display.flip()
 
-            if self.next_scene is not None:
-                current_scene = self.next_scene
-                self.next_scene = None
+            if current_scene.next_scene is not None:
+                current_scene = current_scene.next_scene
+                current_scene.next_scene = None
 
             t: float = time.time()
             diff: float = t - current_time

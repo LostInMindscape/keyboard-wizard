@@ -29,3 +29,6 @@ class Vec2:
             self.x * other,
             self.y * other
         )
+
+    def to_tuple(self) -> tuple[float, float]:
+        return self.x, self.y

@@ -2,7 +2,6 @@ import json
 import math
 import time
 
-import engine.game
 import engine.scene
 from engine.vec2 import Vec2
 import os
@@ -19,24 +18,28 @@ PROCESSORS_TEXTURES_PATH: str       = os.path.join(TEXTURES_PATH, "processors")
 TILESET_TEXTURES_PATH: str          = os.path.join(TEXTURES_PATH, "tileset")
 ROOM_FEATURE_TEXTURES_PATH: str     = os.path.join(TEXTURES_PATH, "room_features")
 
-STATE_NORMAL: int                   = 0
-STATE_COMMAND_INPUT: int            = 1
-STATE_TRANSITION: int               = 2
-
 
 class WorldScene(engine.scene.Scene):
+    STATE_NORMAL: int = 0
+    STATE_COMMAND_INPUT: int = 1
+    STATE_TRANSITION: int = 2
+
     def __init__(self):
-        self.state: int = STATE_NORMAL
+        super().__init__()
+
+        self.state: int = WorldScene.STATE_TRANSITION
         self.command: str = ""
         self.fps: int = 0
         self.draw_fps: bool = False
 
-        self.transition_timer: float = 0.0
+        self.transition_timer: float = 0.5
         self.transition_target: Vec2 = Vec2(0, 0)
         self.transition_reset_energy: bool = True
 
+        self.fill_color: pygame.Color = pygame.Color(0x20, 0x20, 0x40)
         self.font_color_energy: pygame.Color = pygame.Color(0x80, 0x80, 0xc0)
         self.font_color_no_energy: pygame.Color = pygame.Color(0xc0, 0x80, 0x80)
+        self.transition_color: pygame.Color = pygame.Color(0x20, 0x20, 0x20)
 
         self.energy_texture: pygame.Surface = \
             pygame.image.load(os.path.join(TEXTURES_PATH, "energy.bmp")).convert_alpha()
@@ -51,8 +54,7 @@ class WorldScene(engine.scene.Scene):
         data: dict = json.loads(json_text)
 
         # loading font
-        self.font: freetype.Font = \
-            freetype.Font(
+        self.font: freetype.Font = freetype.Font(
                 os.path.join(FONT_PATH, data["font"]["name"]),
                 data["font"].get("size", 30)
             ) if "font" in data and "name" in data["font"] else \
@@ -64,6 +66,7 @@ class WorldScene(engine.scene.Scene):
         self.player_spawn: Vec2 = Vec2(data["player"]["position"][0], data["player"]["position"][1])
         self.player = player.Player()
         self.player.update_from_dict(data["player"], TEXTURES_PATH)
+        self.transition_target: Vec2 = Vec2(self.player_spawn.x, self.player_spawn.y)
 
         # loading tilemap
         self.tilemap: tilemap.TileMap = tilemap.TileMap(
@@ -114,7 +117,7 @@ class WorldScene(engine.scene.Scene):
         for event in pygame.event.get():
             self._process_event(event)
 
-        if self.state == STATE_TRANSITION:
+        if self.state == WorldScene.STATE_TRANSITION:
             if self.transition_timer < 0.5 <= self.transition_timer + delta:
                 self.player.position = self.transition_target
                 self.tilemap.reset()
@@ -125,7 +128,7 @@ class WorldScene(engine.scene.Scene):
             self.transition_timer += delta
 
             if self.transition_timer > 1.0:
-                self.state = STATE_NORMAL
+                self.state = WorldScene.STATE_NORMAL
 
         if delta != 0.0:
             self.fps = int(1 / delta)
@@ -141,7 +144,7 @@ class WorldScene(engine.scene.Scene):
             room[1] * window.get_height()
         )
 
-        window.fill(pygame.Color(0x20, 0x20, 0x40))
+        window.fill(self.fill_color)
 
         rf: RoomFeatures = self.get_room_features(room)
 
@@ -189,11 +192,11 @@ class WorldScene(engine.scene.Scene):
             self.font_color_no_energy if self.player.energy == 0 else self.font_color_energy,
         )
 
-        if self.state == STATE_COMMAND_INPUT:
+        if self.state == WorldScene.STATE_COMMAND_INPUT:
             self._draw_command_input(window)
-        elif self.state == STATE_TRANSITION:
+        elif self.state == WorldScene.STATE_TRANSITION:
             pygame.draw.circle(
-                window, pygame.Color(0x20, 0x20, 0x20),
+                window, self.transition_color,
                 (
                     int(self.player.position.x) % window.get_width(),
                     int(self.player.position.y) % window.get_height()
@@ -243,17 +246,17 @@ class WorldScene(engine.scene.Scene):
             pygame.quit()
             sys.exit()
 
-        elif self.state == STATE_COMMAND_INPUT:
+        elif self.state == WorldScene.STATE_COMMAND_INPUT:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     self._process_command()
 
-                    if self.state == STATE_COMMAND_INPUT:
-                        self.state = STATE_NORMAL
+                    if self.state == WorldScene.STATE_COMMAND_INPUT:
+                        self.state = WorldScene.STATE_NORMAL
                 elif event.key == pygame.K_BACKSPACE and len(self.command) > 0:
                     self.command = self.command[:-1]
                 elif event.key == pygame.K_ESCAPE:
-                    self.state = STATE_NORMAL
+                    self.state = WorldScene.STATE_NORMAL
                     self.command = ""
                 elif pygame.K_a <= event.key <= pygame.K_z or event.key == pygame.K_SPACE:
                     self.command += event.unicode
@@ -261,7 +264,7 @@ class WorldScene(engine.scene.Scene):
         else:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                    self.state = STATE_COMMAND_INPUT
+                    self.state = WorldScene.STATE_COMMAND_INPUT
                     self.player.direction = 0
 
                 elif event.key == pygame.K_e:
@@ -346,7 +349,7 @@ class WorldScene(engine.scene.Scene):
                 self.player.energy = self.player.max_energy
 
         # check collisions with portal
-        if self.portals_on and self.state == STATE_NORMAL and self.portals.get(room) is not None:
+        if self.portals_on and self.state == WorldScene.STATE_NORMAL and self.portals.get(room) is not None:
             portal_rect: pygame.Rect = pygame.Rect(
                 self.portals[room].x,
                 self.portals[room].y,
@@ -417,7 +420,7 @@ class WorldScene(engine.scene.Scene):
 
 
     def _start_transition(self, target: Vec2, reset_energy: bool = True, reset_jumpboost: bool = True) -> None:
-        self.state = STATE_TRANSITION
+        self.state = WorldScene.STATE_TRANSITION
         self.transition_target = target
         self.transition_timer = 0.0
         self.transition_reset_energy = reset_energy
@@ -432,9 +435,4 @@ class WorldScene(engine.scene.Scene):
             self.room_features[room_id] = RoomFeatures.from_dict(data, ROOM_FEATURE_TEXTURES_PATH)
 
 
-if __name__ == "__main__":
-    main_window: pygame.Surface = pygame.display.set_mode((1600, 900))
-    scene = WorldScene()
-    g = engine.game.Game(main_window, scene, 144)
-    g.run()
 
