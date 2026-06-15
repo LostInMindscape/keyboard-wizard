@@ -96,7 +96,7 @@ class StartScene(engine.scene.Scene):
 
     def draw(self, window: pygame.Surface):
         window.fill(self.bg_color)
-        self._draw_background(window)
+        #self._draw_background(window)
 
         if self.state == StartScene.STATE_CREDITS:
             y: int = 50
@@ -162,16 +162,3 @@ class StartScene(engine.scene.Scene):
                 pygame.Color(0x0, 0x0, 0x0),
                 (d[1].x, max(0.0, d[1].y), d[0], d[0] if d[1].y > 0 else d[0] + d[1].y)
             )
-
-        return
-
-        if random.random() > 0.01:
-            return
-
-        for _ in range(random.randint(2, 5)):
-            start: int = random.randint(0, window.get_height() - 50)
-
-            for _ in range(random.randint(2, 5)):
-                y = random.randint(4, 8)
-                window.fill(self.accent_color, (0, start, window.get_width(), y))
-                start += y + 1
