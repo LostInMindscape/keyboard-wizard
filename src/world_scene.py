@@ -20,15 +20,17 @@ ROOM_FEATURE_TEXTURES_PATH: str     = os.path.join(TEXTURES_PATH, "room_features
 
 
 class WorldScene(engine.scene.Scene):
-    STATE_NORMAL: int = 0
-    STATE_COMMAND_INPUT: int = 1
-    STATE_TRANSITION: int = 2
+    STATE_NORMAL: int           = 0
+    STATE_COMMAND_INPUT: int    = 1
+    STATE_COMMAND_LIST: int     = 2
+    STATE_TRANSITION: int       = 3
 
     def __init__(self):
         super().__init__()
 
         self.state: int = WorldScene.STATE_TRANSITION
         self.command: str = ""
+        self.saved_commands: list[str] = []
         self.fps: int = 0
         self.draw_fps: bool = False
 
@@ -39,6 +41,7 @@ class WorldScene(engine.scene.Scene):
         self.fill_color: pygame.Color = pygame.Color(0x20, 0x20, 0x40)
         self.font_color_energy: pygame.Color = pygame.Color(0x80, 0x80, 0xc0)
         self.font_color_no_energy: pygame.Color = pygame.Color(0xc0, 0x80, 0x80)
+        self.list_color: pygame.Color = pygame.Color(0x40, 0x40, 0x40)
         self.transition_color: pygame.Color = pygame.Color(0x20, 0x20, 0x20)
 
         self.energy_texture: pygame.Surface = \
@@ -139,6 +142,38 @@ class WorldScene(engine.scene.Scene):
     def draw(self, window: pygame.Surface) -> None:
         room: tuple[int, int] = self.get_current_room()
 
+        self._draw_room(window, room)
+
+        self.font.render_to(
+            window,
+            (5, 5), "Energy: " + str(self.player.energy) + "/" + str(self.player.max_energy),
+            self.font_color_no_energy if self.player.energy == 0 else self.font_color_energy,
+        )
+
+        if self.state == WorldScene.STATE_COMMAND_INPUT:
+            self._draw_command_input(window)
+        elif self.state == WorldScene.STATE_COMMAND_LIST:
+            self._draw_command_list(window)
+        elif self.state == WorldScene.STATE_TRANSITION:
+            pygame.draw.circle(
+                window, self.transition_color,
+                (
+                    int(self.player.position.x) % window.get_width(),
+                    int(self.player.position.y) % window.get_height()
+                ),
+                abs(self.transition_timer if self.transition_timer < 0.5 else 1 - self.transition_timer) * 4096
+            )
+
+        if self.draw_fps:
+            fps_text: pygame.Surface = self.font.render("FPS: " + str(self.fps))[0]
+            window.blit(
+                fps_text,
+                (window.get_width() - 245, 5)
+            )
+            # self.font.render_to(window, (5, 5), "FPS: " + str(self.fps))
+
+
+    def _draw_room(self, window: pygame.Surface, room: tuple[int, int]) -> None:
         offset: Vec2 = Vec2(
             room[0] * window.get_width(),
             room[1] * window.get_height()
@@ -167,7 +202,7 @@ class WorldScene(engine.scene.Scene):
         self.player.draw(window, offset)
 
         if rf.processor is not None and rf.processor.color not in self.collected_processors:
-           rf.draw_processor(window, self.processors)
+            rf.draw_processor(window, self.processors)
 
         if self.altar_room == room and len(self.collected_processors) != 0:
             vec: Vec2 = Vec2(
@@ -185,32 +220,6 @@ class WorldScene(engine.scene.Scene):
                 vec = vec.rotated(rot)
 
         rf.try_draw_overlay(window)
-
-        self.font.render_to(
-            window,
-            (5, 5), "Energy: " + str(self.player.energy) + "/" + str(self.player.max_energy),
-            self.font_color_no_energy if self.player.energy == 0 else self.font_color_energy,
-        )
-
-        if self.state == WorldScene.STATE_COMMAND_INPUT:
-            self._draw_command_input(window)
-        elif self.state == WorldScene.STATE_TRANSITION:
-            pygame.draw.circle(
-                window, self.transition_color,
-                (
-                    int(self.player.position.x) % window.get_width(),
-                    int(self.player.position.y) % window.get_height()
-                ),
-                abs(self.transition_timer if self.transition_timer < 0.5 else 1 - self.transition_timer) * 4096
-            )
-
-        if self.draw_fps:
-            fps_text: pygame.Surface = self.font.render("FPS: " + str(self.fps))[0]
-            window.blit(
-                fps_text,
-                (window.get_width() - 245, 5)
-            )
-            # self.font.render_to(window, (5, 5), "FPS: " + str(self.fps))
 
 
     def get_current_room(self) -> tuple[int, int]:
@@ -241,6 +250,22 @@ class WorldScene(engine.scene.Scene):
         window.blit(background, (10, window.get_height() - self.font.size - 20))
 
 
+    def _draw_command_list(self, window: pygame.Surface) -> None:
+        surf: pygame.Surface = pygame.Surface((window.get_width() - 300, window.get_height() - 150))
+        surf.fill(self.list_color)
+        surf.set_alpha(0xc0)
+
+        y: int = 20
+        for command in self.saved_commands:
+            self.font.render_to(surf, (10, y), ">" + command, self.font_color_energy)
+            y += self.font.size + 20
+
+        window.blit(surf, (
+            (window.get_width() - surf.get_width()) * 0.5,
+            (window.get_height() - surf.get_height()) * 0.5
+        ))
+
+
     def _process_event(self, event: pygame.Event) -> None:
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -261,7 +286,17 @@ class WorldScene(engine.scene.Scene):
                 elif pygame.K_a <= event.key <= pygame.K_z or event.key == pygame.K_SPACE:
                     self.command += event.unicode
 
-        else:
+        elif self.state == WorldScene.STATE_COMMAND_LIST:
+            if event.type == pygame.KEYDOWN:
+                self.player.handle_event(event)
+
+            elif event.type == pygame.KEYUP:
+                if event.key == pygame.K_TAB:
+                    self.state = WorldScene.STATE_NORMAL
+                else:
+                    self.player.handle_event(event)
+
+        elif self.state != WorldScene.STATE_TRANSITION:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     self.state = WorldScene.STATE_COMMAND_INPUT
@@ -278,6 +313,9 @@ class WorldScene(engine.scene.Scene):
 
                 elif event.key == pygame.K_p:
                     self.draw_fps = not self.draw_fps
+
+                elif event.key == pygame.K_TAB:
+                    self.state = WorldScene.STATE_COMMAND_LIST
 
                 else:
                     self.player.handle_event(event)
@@ -371,11 +409,14 @@ class WorldScene(engine.scene.Scene):
 
 
     def _process_command(self):
+        valid: bool = False
+
         if self.player.energy <= 0:
             return
 
         elif self.command == "recall":
             if self.player.saved_spawnpoint is not None:
+                valid = True
                 sp: Vec2 = self.get_room_features(self.player.saved_spawnpoint).spawnpoint
 
                 self._start_transition(Vec2(
@@ -390,32 +431,41 @@ class WorldScene(engine.scene.Scene):
             y_range: range = range(int(self.room_size_tiles.y) * room[1], int(self.room_size_tiles.y) * (room[1] + 1))
             x_range: range = range(int(self.room_size_tiles.x) * room[0], int(self.room_size_tiles.x) * (room[0] + 1))
 
+            used: bool = False
             for y in y_range:
                 for x in x_range:
                     if self.tilemap.get_tile_at(x, y).toggle is not None:
                         self.tilemap.map[y][x] = self.tilemap.get_tile_at(x, y).toggle
+                        used = True
+
+            if used:
+                valid = True
 
         elif self.command == "jumpboost":
             self.player.boosted_jump = True
+            valid = True
 
         elif self.command == "return":
             self._start_transition(Vec2(self.player_spawn.x, self.player_spawn.y))
+            valid = True
 
         elif self.command == "light":
             rf: RoomFeatures = self.get_current_room_features()
 
             if rf.overlay is not None:
                 rf.draw_overlay = not rf.draw_overlay
-            else:
-                self.player.energy += 1
+                valid = True
 
         elif self.command == "charge" and self.portals.get(self.get_current_room()) is not None:
             self.portals_on = True
+            valid = True
 
-        else:
-            self.player.energy += 1
+        if valid:
+            self.player.energy -= 1
 
-        self.player.energy -= 1
+            if not self.command in self.saved_commands:
+                self.saved_commands.append(self.command)
+
         self.command = ""
 
 
