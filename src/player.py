@@ -90,11 +90,11 @@ class Player:
 
     def handle_event(self, event: pygame.event.Event) -> None:
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_a:
-                self.direction -= 1.0
-            elif event.key == pygame.K_d:
-                self.direction += 1.0
-            elif event.key == pygame.K_SPACE or event.key == pygame.K_w:
+            # if event.key == pygame.K_a:
+            #     self.direction -= 1.0
+            # elif event.key == pygame.K_d:
+            #     self.direction += 1.0
+            if event.key == pygame.K_SPACE or event.key == pygame.K_w:
                 if self.on_ground:
                     self.can_jump_cancel = True
 
@@ -114,7 +114,7 @@ class Player:
                     self.can_jump_cancel = False
                     self.velocity.y += self.jump_cancel
 
-        self.direction = max(-1, min(1, self.direction))
+        # self.direction = max(-1, min(1, self.direction))
 
 
     def draw(self, surface: pygame.Surface, negative_offset: Vec2) -> None:
@@ -139,6 +139,14 @@ class Player:
 
     def update(self, tile_map: tilemap.TileMap, delta: float) -> None:
         self.sprite_timer += delta
+
+        self.direction = 0
+
+        if pygame.key.get_pressed()[pygame.K_a]:
+            self.direction -= 1
+
+        if pygame.key.get_pressed()[pygame.K_d]:
+            self.direction += 1
 
         # self.velocity.x = self.direction * self.max_speed
         self.velocity.x = move_towards(self.velocity.x, self.direction * self.max_speed, self.acceleration * delta)
