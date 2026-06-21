@@ -2,6 +2,7 @@ import json
 import math
 import time
 
+from command_list import CommandList
 import engine.scene
 from engine.vec2 import Vec2
 import os
@@ -30,7 +31,6 @@ class WorldScene(engine.scene.Scene):
 
         self.state: int = WorldScene.STATE_TRANSITION
         self.command: str = ""
-        self.saved_commands: list[str] = []
         self.fps: int = 0
         self.draw_fps: bool = False
 
@@ -115,6 +115,14 @@ class WorldScene(engine.scene.Scene):
             self.portals[(portal["room"][0], portal["room"][1])] = \
                 Vec2(portal["position"][0], portal["position"][1])
 
+        # creating command list
+        self.command_list: CommandList = CommandList(
+            (int(self.room_size_pixels.x) - 300, int(self.room_size_pixels.y) - 150),
+            pygame.Color(self.list_color.r, self.list_color.g, self.list_color.b, 0xc0),
+            self.font,
+            self.font_color_energy
+        )
+
 
     def update(self, delta: float) -> None:
         for event in pygame.event.get():
@@ -153,7 +161,7 @@ class WorldScene(engine.scene.Scene):
         if self.state == WorldScene.STATE_COMMAND_INPUT:
             self._draw_command_input(window)
         elif self.state == WorldScene.STATE_COMMAND_LIST:
-            self._draw_command_list(window)
+            self.command_list.draw(window)
         elif self.state == WorldScene.STATE_TRANSITION:
             pygame.draw.circle(
                 window, self.transition_color,
@@ -248,22 +256,6 @@ class WorldScene(engine.scene.Scene):
         background.blit(text_surface, (5, background.get_height() - 5 - text_surface.get_height()))
 
         window.blit(background, (10, window.get_height() - self.font.size - 20))
-
-
-    def _draw_command_list(self, window: pygame.Surface) -> None:
-        surf: pygame.Surface = pygame.Surface((window.get_width() - 300, window.get_height() - 150))
-        surf.fill(self.list_color)
-        surf.set_alpha(0xc0)
-
-        y: int = 20
-        for command in self.saved_commands:
-            self.font.render_to(surf, (10, y), ">" + command, self.font_color_energy)
-            y += self.font.size + 20
-
-        window.blit(surf, (
-            (window.get_width() - surf.get_width()) * 0.5,
-            (window.get_height() - surf.get_height()) * 0.5
-        ))
 
 
     def _process_event(self, event: pygame.Event) -> None:
@@ -462,9 +454,7 @@ class WorldScene(engine.scene.Scene):
 
         if valid:
             self.player.energy -= 1
-
-            if not self.command in self.saved_commands:
-                self.saved_commands.append(self.command)
+            self.command_list.append_command(self.command)
 
         self.command = ""
 
@@ -476,7 +466,7 @@ class WorldScene(engine.scene.Scene):
         self.transition_reset_energy = reset_energy
 
         if reset_jumpboost:
-            self.boosted_jump = False
+            self.player.boosted_jump = False
 
 
     def _load_room_features(self, features_list: list) -> None:
