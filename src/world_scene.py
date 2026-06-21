@@ -9,11 +9,13 @@ import os
 import player
 import pygame
 from pygame import freetype
+from pygame import mixer
 from room_features import RoomFeatures
 import sys
 import tilemap
 
 FONT_PATH: str                      = os.path.join("assets", "font")
+MUSIC_PATH: str                     = os.path.join("assets", "music")
 TEXTURES_PATH: str                  = os.path.join("assets", "textures")
 PROCESSORS_TEXTURES_PATH: str       = os.path.join(TEXTURES_PATH, "processors")
 TILESET_TEXTURES_PATH: str          = os.path.join(TEXTURES_PATH, "tileset")
@@ -114,6 +116,14 @@ class WorldScene(engine.scene.Scene):
         for portal in data["portals"]:
             self.portals[(portal["room"][0], portal["room"][1])] = \
                 Vec2(portal["position"][0], portal["position"][1])
+
+        # loading music
+        mixer.music.load(os.path.join(MUSIC_PATH, data["sounds"]["music"]))
+        mixer.music.play(-1)
+
+        self.sound_input: mixer.Sound = mixer.Sound(os.path.join(MUSIC_PATH, data["sounds"]["input"]))
+        self.sound_input_accept: mixer.Sound = mixer.Sound(os.path.join(MUSIC_PATH, data["sounds"]["input_accept"]))
+        self.sound_input_error: mixer.Sound = mixer.Sound(os.path.join(MUSIC_PATH, data["sounds"]["input_error"]))
 
         # creating command list
         self.command_list: CommandList = CommandList(
@@ -267,16 +277,17 @@ class WorldScene(engine.scene.Scene):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     self._process_command()
-
                     if self.state == WorldScene.STATE_COMMAND_INPUT:
                         self.state = WorldScene.STATE_NORMAL
                 elif event.key == pygame.K_BACKSPACE and len(self.command) > 0:
                     self.command = self.command[:-1]
+                    self.sound_input.play()
                 elif event.key == pygame.K_ESCAPE:
                     self.state = WorldScene.STATE_NORMAL
                     self.command = ""
                 elif pygame.K_a <= event.key <= pygame.K_z or event.key == pygame.K_SPACE:
                     self.command += event.unicode
+                    self.sound_input.play()
 
         elif self.state == WorldScene.STATE_COMMAND_LIST:
             if event.type == pygame.KEYDOWN:
@@ -401,14 +412,13 @@ class WorldScene(engine.scene.Scene):
 
 
     def _process_command(self):
-        valid: bool = False
+        valid: bool = True
 
         if self.player.energy <= 0:
             return
 
         elif self.command == "recall":
             if self.player.saved_spawnpoint is not None:
-                valid = True
                 sp: Vec2 = self.get_room_features(self.player.saved_spawnpoint).spawnpoint
 
                 self._start_transition(Vec2(
@@ -417,42 +427,42 @@ class WorldScene(engine.scene.Scene):
                 ))
 
                 self.tilemap.reset()
+            else:
+                valid = False
 
         elif self.command == "toggle":
             room: tuple[int, int] = self.get_current_room()
             y_range: range = range(int(self.room_size_tiles.y) * room[1], int(self.room_size_tiles.y) * (room[1] + 1))
             x_range: range = range(int(self.room_size_tiles.x) * room[0], int(self.room_size_tiles.x) * (room[0] + 1))
 
-            used: bool = False
             for y in y_range:
                 for x in x_range:
                     if self.tilemap.get_tile_at(x, y).toggle is not None:
                         self.tilemap.map[y][x] = self.tilemap.get_tile_at(x, y).toggle
-                        used = True
-
-            if used:
-                valid = True
 
         elif self.command == "jumpboost":
             self.player.boosted_jump = True
-            valid = True
 
         elif self.command == "return":
             self._start_transition(Vec2(self.player_spawn.x, self.player_spawn.y))
-            valid = True
 
         elif self.command == "light":
             rf: RoomFeatures = self.get_current_room_features()
 
             if rf.overlay is not None:
                 rf.draw_overlay = not rf.draw_overlay
-                valid = True
+            else:
+                valid = False
 
         elif self.command == "charge" and self.portals.get(self.get_current_room()) is not None:
             self.portals_on = True
-            valid = True
+
+        else:
+            valid = False
+            self.sound_input_error.play()
 
         if valid:
+            self.sound_input_accept.play()
             self.player.energy -= 1
             self.command_list.append_command(self.command)
 

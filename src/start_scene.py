@@ -27,8 +27,8 @@ class StartScene(engine.scene.Scene):
         self.state: int = StartScene.STATE_NORMAL
         self.transition_timer: float = 0.0
 
-        self.font_big: freetype.Font = freetype.Font(FONT_PATH, 70)
-        self.font_small: freetype.Font = freetype.Font(FONT_PATH, 50)
+        self.font_big: freetype.Font = freetype.Font(FONT_PATH, 60)
+        self.font_small: freetype.Font = freetype.Font(FONT_PATH, 40)
 
         self.font_color: pygame.Color = pygame.Color(0x80, 0x80, 0xc0)
         self.fill_color: pygame.Color = pygame.Color(0x20, 0x20, 0x20)
@@ -59,9 +59,11 @@ class StartScene(engine.scene.Scene):
             self.font_big.render("Font", self.font_color)[0],
             self.font_small.render("Press Start by", self.font_color)[0],
             self.font_small.render("Cody \"CodeMan38\" Boisclair", self.font_color)[0],
+            self.font_big.render("Music", self.font_color)[0],
+            self.font_small.render("www.OpenGameArt.com", self.font_color)[0],
             self.font_big.render("Made using Pygame", self.font_color)[0]
         ]
-        self.credits_breaks: list[float] = [2, 1.7, 2.5, 1.7, 1.7, 2.5, 1]
+        self.credits_breaks: list[float] = [2, 1.7, 2.5, 1.7, 1.7, 2.5, 1.7, 2.5, 1]
 
         self.details: list[tuple[int, Vec2]] = []
         self.falling_starts_timer: float = 0.0

@@ -378,5 +378,11 @@
             "position": [650, 450],
             "room": [1, 0]
         }
-    ]
+    ],
+    "sounds": {
+        "music": "IswearIsawit.ogg",
+        "input": "input.wav",
+        "input_accept": "command_accept.wav",
+        "input_error": "command_incorrect.wav"
+    }
 }
